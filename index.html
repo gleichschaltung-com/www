@@ -714,13 +714,15 @@
 
             var from = heading >= 0 ? eventDays[heading] : target;
             prevBtn.disabled = from <= eventDays[0] + 0.01;
-            // At the last event the next button turns into "back to top".
-            var atEnd = from >= lastDay - 0.01;
+            nextBtn.disabled = from >= lastDay - 0.01;
+            // Once the last event is actually reached, the next button turns into "back to top".
+            var atEnd = target >= lastDay - 0.01;
             if (atEnd !== nextBtn.hidden) {
                 var hadFocus = document.activeElement === (atEnd ? nextBtn : topBtn);
                 nextBtn.hidden = atEnd;
                 topBtn.hidden = !atEnd;
-                if (hadFocus) (atEnd ? topBtn : nextBtn).focus();
+                // preventScroll: moving focus must not cancel a smooth scroll in progress.
+                if (hadFocus) (atEnd ? topBtn : nextBtn).focus({ preventScroll: true });
             }
         }
 
