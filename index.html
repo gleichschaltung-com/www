@@ -594,6 +594,9 @@
         var FOCUS = 0.4;         // height (share of the viewport) where the ticks peak; cards hang below it
         var PLATEAU_TOP = 0.2;   // above this line and below the next one, items stop changing
         var PLATEAU_BOTTOM = 0.8;
+        var APEX_TOP = 0.32;     // between these lines items stay at full size and sharpness
+        var APEX_BOTTOM = 0.54;
+        var BLUR_START = 0.4;    // share of the way from apex to plateau before blur sets in
         var MIN_SCALE = 0.45;    // item size once it reaches the plateau
         var MAX_BLUR = 6;        // blur in px once it reaches the plateau
         // Scrolling speeds up in empty stretches: within CALM_DAYS of an event one day
@@ -601,7 +604,6 @@
         var CALM_DAYS = 5;
         var RAMP_DAYS = 10;
         var GAP_COST = 0.2;
-        var HOLD_PX = 250;       // extra scrolling (about 2–3 wheel notches) during which a card rests at the apex
         var STEP = 0.25;         // resolution of the scroll lookup table, in days
 
         section.classList.add('is-enhanced');
@@ -654,8 +656,7 @@
             return 1 - (1 - GAP_COST) * Math.min(1, Math.max(0, gap - CALM_DAYS) / RAMP_DAYS);
         }
 
-        // Lookup table from scroll offset (px) to day. Each event adds a flat
-        // stretch of HOLD_PX where scrolling leaves the timeline at rest.
+        // Lookup table from scroll offset (px) to day.
         var knotPx = [], knotDay = [], eventScroll = [], totalScroll = 0;
 
         function buildScrollMap() {
@@ -665,13 +666,7 @@
                 var day = i * STEP;
                 if (i > 0) px += rate(day - STEP / 2) * STEP * dayPx;
                 knotPx.push(px); knotDay.push(day);
-                while (next < eventDays.length && eventDays[next] <= day + 1e-9) {
-                    eventScroll[next++] = px + HOLD_PX / 2;
-                    if (next === 1 || eventDays[next - 1] !== eventDays[next - 2]) {
-                        px += HOLD_PX;
-                        knotPx.push(px); knotDay.push(day);
-                    }
-                }
+                while (next < eventDays.length && eventDays[next] <= day + 1e-9) eventScroll[next++] = px;
             }
             totalScroll = px;
         }
@@ -702,8 +697,8 @@
             section.style.height = (totalScroll + viewH) + 'px';
 
             focusY = FOCUS * viewH;
-            above = side((FOCUS - PLATEAU_TOP) * viewH);
-            below = side((PLATEAU_BOTTOM - FOCUS) * viewH);
+            above = side((FOCUS - PLATEAU_TOP) * viewH, (FOCUS - APEX_TOP) * viewH);
+            below = side((PLATEAU_BOTTOM - FOCUS) * viewH, (APEX_BOTTOM - FOCUS) * viewH);
 
             onScroll();
             current = target;
@@ -712,20 +707,20 @@
 
         // Perspective on each side of the focus line: the horizon sits at twice
         // the plateau distance, so items reach the plateau moving at a quarter speed.
-        function side(plateauY) {
+        function side(plateauY, apexY) {
             var horizon = 2 * plateauY;
-            return { y: plateauY, horizon: horizon, g: plateauY / (1 - plateauY / horizon),
+            return { y: plateauY, apex: apexY, horizon: horizon, g: plateauY / (1 - plateauY / horizon),
                      slope: Math.pow(1 - plateauY / horizon, 2) };
         }
 
         // Track distance g (px) from the focus line maps to a screen offset that is
         // squeezed towards the edges. Past the plateau it continues in a straight
         // line, so items there move at a constant rate. Returns the offset and
-        // how far along towards the plateau the item is (0..1).
+        // how far along from the apex band towards the plateau the item is (0..1).
         function project(g) {
             var p = g < 0 ? above : below, a = Math.abs(g);
             var y = a <= p.g ? a / (1 + a / p.horizon) : p.y + (a - p.g) * p.slope;
-            return { y: g < 0 ? -y : y, t: Math.min(y / p.y, 1) };
+            return { y: g < 0 ? -y : y, t: Math.min(Math.max(0, (y - p.apex) / (p.y - p.apex)), 1) };
         }
 
         // Flat at both ends, so items ease into the centre and into the plateau
@@ -775,9 +770,11 @@
                     it.el.style.visibility = 'hidden';
                     continue;
                 }
-                var t = smooth(pr.t);   // 0 at the focus line, 1 from the plateau outwards
+                var t = smooth(pr.t);   // 0 within the apex band, 1 from the plateau outwards
+                // Blur only in the outer part of the ramp, so cards are sharp as soon as they are big enough to read.
+                var tb = smooth(Math.max(0, (pr.t - BLUR_START) / (1 - BLUR_START)));
                 var scale = calm ? 1 - 0.2 * t : 1 - (1 - MIN_SCALE) * t;
-                var blur = calm ? 0 : MAX_BLUR * t;
+                var blur = calm ? 0 : MAX_BLUR * tb;
                 it.el.style.visibility = '';
                 it.el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
                 it.el.style.filter = 'blur(' + blur.toFixed(2) + 'px)';
@@ -825,7 +822,6 @@
             heading = to;
             var sectionTop = section.getBoundingClientRect().top + window.pageYOffset;
             window.scrollTo({
-                // Land in the middle of the event's rest stretch.
                 top: sectionTop + eventScroll[to],
                 behavior: reduceMotion.matches ? 'auto' : 'smooth'
             });
