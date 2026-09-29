@@ -5,28 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gleichschaltung - Definition</title>
     <style>
+        :root {
+            --bg: #f9f9f9;
+            --paper: #ffffff;
+            --ink: #333333;
+            --ink-soft: #666666;
+            --rule: #cccccc;
+            --accent: #7a1f1f;
+        }
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: Georgia, serif;
+            margin: 0;
+            line-height: 1.6;
+            color: var(--ink);
+            background-color: var(--bg);
+        }
+        .page {
             max-width: 800px;
             margin: 0 auto;
             padding: 40px 20px;
-            line-height: 1.6;
-            background-color: #f9f9f9;
         }
         .container {
-            background-color: white;
+            background-color: var(--paper);
             padding: 40px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         h1 {
-            color: #333;
-            border-bottom: 3px solid #666;
+            color: var(--ink);
+            border-bottom: 3px solid var(--ink-soft);
             padding-bottom: 10px;
         }
         .pronunciation {
             font-style: italic;
-            color: #666;
+            color: var(--ink-soft);
             margin-bottom: 20px;
         }
         .definition {
@@ -36,7 +51,7 @@
         .etymology {
             background-color: #f5f5f5;
             padding: 20px;
-            border-left: 4px solid #ccc;
+            border-left: 4px solid var(--rule);
             margin: 20px 0;
         }
         .historical-context {
@@ -44,38 +59,630 @@
             padding-top: 20px;
             border-top: 1px solid #eee;
         }
+
+        /* ---------- Timeline intro ---------- */
+        .timeline-intro {
+            text-align: center;
+            padding: 60px 0 20px;
+        }
+        .timeline-intro h2 {
+            font-size: 32px;
+            font-weight: normal;
+            margin: 0 0 8px;
+        }
+        .timeline-intro p {
+            color: var(--ink-soft);
+            margin: 0 auto;
+            max-width: 560px;
+        }
+        .scroll-hint {
+            display: block;
+            margin-top: 24px;
+            font-size: 14px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+        }
+
+        /* ---------- Timeline: fallback (no JS) is a plain list ---------- */
+        .timeline {
+            --bar-x: 140px;
+            position: relative;
+        }
+        .timeline-stage {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .tl-events {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .tl-event {
+            margin: 0 0 24px;
+        }
+        .tl-card {
+            background: var(--paper);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 18px 22px;
+        }
+        .tl-card time {
+            display: block;
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .tl-card h3 {
+            margin: 4px 0 8px;
+            font-size: 20px;
+            line-height: 1.3;
+        }
+        .tl-card p {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        /* ---------- Timeline: enhanced (JS) pinned stage ---------- */
+        .timeline.is-enhanced .timeline-stage {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            height: 100dvh;
+            max-width: none;
+            padding: 0;
+            overflow: hidden;
+        }
+        .timeline.is-enhanced .timeline-inner {
+            position: relative;
+            height: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .timeline.is-enhanced .tl-bar {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: var(--bar-x);
+            width: 2px;
+            margin-left: -1px;
+            background: var(--ink);
+            -webkit-mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent);
+            mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent);
+        }
+        .timeline.is-enhanced .tl-now {
+            position: absolute;
+            top: 24px;
+            left: 20px;
+            font-size: 13px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            z-index: 1000;
+        }
+        .timeline.is-enhanced .tl-event,
+        .timeline.is-enhanced .tl-month {
+            position: absolute;
+            top: 0;
+            margin: 0;
+            will-change: transform, opacity, filter;
+        }
+        .timeline.is-enhanced .tl-event {
+            left: var(--bar-x);
+            width: min(480px, calc(100% - var(--bar-x) - 20px));
+            transform-origin: 0 0;
+        }
+        .timeline.is-enhanced .tl-event::before {
+            /* the tick: a dot sitting on the bar */
+            content: "";
+            position: absolute;
+            left: -7px;
+            top: -7px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 0 4px var(--bg);
+        }
+        .timeline.is-enhanced .tl-event::after {
+            /* connector the card hangs from */
+            content: "";
+            position: absolute;
+            left: 7px;
+            top: -1px;
+            width: 21px;
+            height: 2px;
+            background: var(--accent);
+        }
+        .timeline.is-enhanced .tl-card {
+            margin-left: 28px;
+            transform: translateY(-22px);
+        }
+        .timeline.is-enhanced .tl-month {
+            left: 0;
+            width: var(--bar-x);
+            padding-right: 18px;
+            text-align: right;
+            font-size: 14px;
+            line-height: 1;
+            color: var(--ink-soft);
+            transform-origin: 100% 0;
+        }
+        .timeline.is-enhanced .tl-month span {
+            display: inline-block;
+            transform: translateY(-50%);
+        }
+        .timeline.is-enhanced .tl-month::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: -1px;
+            width: 10px;
+            height: 2px;
+            background: var(--ink);
+        }
+        .timeline.is-enhanced .tl-month.is-year {
+            font-size: 26px;
+            color: var(--ink);
+        }
+        .timeline.is-enhanced .tl-month.is-year::after {
+            width: 16px;
+        }
+
+        .timeline-outro {
+            text-align: center;
+            padding: 40px 0 80px;
+            color: var(--ink-soft);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 24px;
+            }
+            .timeline {
+                --bar-x: 64px;
+            }
+            .timeline.is-enhanced .tl-month {
+                font-size: 12px;
+                padding-right: 14px;
+            }
+            .timeline.is-enhanced .tl-month.is-year {
+                font-size: 16px;
+            }
+            .timeline.is-enhanced .tl-card {
+                margin-left: 22px;
+                padding: 14px 16px;
+            }
+            .timeline.is-enhanced .tl-event::after {
+                width: 15px;
+            }
+            .tl-card h3 {
+                font-size: 18px;
+            }
+            .tl-card p {
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Gleichschaltung</h1>
-        
-        <div class="pronunciation">
-            <strong>Pronunciation:</strong> /ˈɡlaɪçʃaltʊŋ/
+    <div class="page">
+        <div class="container">
+            <h1>Gleichschaltung</h1>
+
+            <div class="pronunciation">
+                <strong>Pronunciation:</strong> /ˈɡlaɪçʃaltʊŋ/
+            </div>
+
+            <div class="definition">
+                <strong>Definition:</strong> A German term meaning "coordination" or "bringing into line," referring to the Nazi policy of establishing total control over all aspects of German society by eliminating independent institutions and forcing conformity to Nazi ideology.
+            </div>
+
+            <div class="etymology">
+                <h3>Etymology</h3>
+                <p><strong>German:</strong> <em>gleich</em> (equal, same) + <em>schalten</em> (to switch, to coordinate) + <em>-ung</em> (noun suffix)</p>
+                <p>Literally translates to "switching to the same" or "making equal."</p>
+            </div>
+
+            <div class="historical-context">
+                <h3>Historical Context</h3>
+                <p>Gleichschaltung was implemented by the Nazi Party between 1933 and 1935 to systematically eliminate political opposition and transform German society into a totalitarian state. This process involved:</p>
+                <ul>
+                    <li>Dissolving independent trade unions and political parties</li>
+                    <li>Taking control of state governments</li>
+                    <li>Coordinating cultural and educational institutions</li>
+                    <li>Establishing Nazi control over professional associations</li>
+                    <li>Forcing compliance with Nazi ideology across all sectors of society</li>
+                </ul>
+                <p>The term represents one of the key mechanisms by which the Nazi regime consolidated power and eliminated democratic institutions in Germany.</p>
+            </div>
         </div>
-        
-        <div class="definition">
-            <strong>Definition:</strong> A German term meaning "coordination" or "bringing into line," referring to the Nazi policy of establishing total control over all aspects of German society by eliminating independent institutions and forcing conformity to Nazi ideology.
-        </div>
-        
-        <div class="etymology">
-            <h3>Etymology</h3>
-            <p><strong>German:</strong> <em>gleich</em> (equal, same) + <em>schalten</em> (to switch, to coordinate) + <em>-ung</em> (noun suffix)</p>
-            <p>Literally translates to "switching to the same" or "making equal."</p>
-        </div>
-        
-        <div class="historical-context">
-            <h3>Historical Context</h3>
-            <p>Gleichschaltung was implemented by the Nazi Party between 1933 and 1935 to systematically eliminate political opposition and transform German society into a totalitarian state. This process involved:</p>
-            <ul>
-                <li>Dissolving independent trade unions and political parties</li>
-                <li>Taking control of state governments</li>
-                <li>Coordinating cultural and educational institutions</li>
-                <li>Establishing Nazi control over professional associations</li>
-                <li>Forcing compliance with Nazi ideology across all sectors of society</li>
-            </ul>
-            <p>The term represents one of the key mechanisms by which the Nazi regime consolidated power and eliminated democratic institutions in Germany.</p>
+
+        <div class="timeline-intro">
+            <h2>From Machtergreifung to Führerstaat</h2>
+            <p>In just nineteen months, a constitutional democracy was turned into a dictatorship. Scroll through the steps that made it happen.</p>
+            <span class="scroll-hint" aria-hidden="true">Scroll ↓</span>
         </div>
     </div>
+
+    <section class="timeline" aria-label="Timeline of the Machtergreifung, 1933–1934">
+        <div class="timeline-stage">
+            <div class="timeline-inner">
+                <ol class="tl-events">
+                    <li class="tl-event" data-date="1933-01-30">
+                        <article class="tl-card">
+                            <time datetime="1933-01-30">30 January 1933</time>
+                            <h3>Hitler becomes Reich Chancellor</h3>
+                            <p>President Hindenburg appoints Adolf Hitler chancellor of a coalition cabinet with the conservative DNVP. Only three of its members are Nazis, and his conservative partners believe they can "tame" him. That evening, SA columns march through the Brandenburg Gate in a torchlight parade. The <em>Machtergreifung</em> has begun.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-02-01">
+                        <article class="tl-card">
+                            <time datetime="1933-02-01">1 February 1933</time>
+                            <h3>Reichstag dissolved</h3>
+                            <p>At Hitler's request, Hindenburg dissolves the Reichstag and calls new elections for 5 March. The NSDAP now campaigns with the full resources of the state behind it.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-02-04">
+                        <article class="tl-card">
+                            <time datetime="1933-02-04">4 February 1933</time>
+                            <h3>Decree "for the Protection of the German People"</h3>
+                            <p>An emergency decree lets the government ban newspapers and political meetings. It is used immediately against the Social Democratic and Communist press during the election campaign.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-02-22">
+                        <article class="tl-card">
+                            <time datetime="1933-02-22">22 February 1933</time>
+                            <h3>SA and SS become auxiliary police</h3>
+                            <p>As Prussian interior minister, Hermann Göring enlists around 50,000 men from the SA, SS and Stahlhelm as <em>Hilfspolizei</em>. Party thugs can now terrorise political opponents with the authority of the state.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-02-27">
+                        <article class="tl-card">
+                            <time datetime="1933-02-27">27 February 1933</time>
+                            <h3>The Reichstag fire</h3>
+                            <p>The parliament building in Berlin burns. The Dutch communist Marinus van der Lubbe is arrested at the scene. The Nazi leadership immediately calls it the signal for a communist uprising.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-02-28">
+                        <article class="tl-card">
+                            <time datetime="1933-02-28">28 February 1933</time>
+                            <h3>Reichstag Fire Decree</h3>
+                            <p>The <em>Verordnung zum Schutz von Volk und Staat</em> suspends basic rights, including freedom of speech, of the press and of assembly, the privacy of mail, and protection from arbitrary arrest. Thousands of Communists are taken into "protective custody". The decree stays in force until 1945.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-03-05">
+                        <article class="tl-card">
+                            <time datetime="1933-03-05">5 March 1933</time>
+                            <h3>The last multi-party Reichstag election</h3>
+                            <p>Despite terror and censorship, the NSDAP wins only 43.9% of the vote. With its DNVP allies it has a narrow majority. In the days that follow, Nazi Reich commissioners take over the state governments that are not yet under Nazi control.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-03-13">
+                        <article class="tl-card">
+                            <time datetime="1933-03-13">13 March 1933</time>
+                            <h3>A ministry for propaganda</h3>
+                            <p>Joseph Goebbels becomes head of the new Reich Ministry for Public Enlightenment and Propaganda. It will steer the press, radio, film and the arts.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-03-21">
+                        <article class="tl-card">
+                            <time datetime="1933-03-21">21 March 1933</time>
+                            <h3>Day of Potsdam</h3>
+                            <p>The new Reichstag opens in Potsdam's Garrison Church with a staged handshake between Hitler and Hindenburg, meant to show that the "new" Germany continues the old Prussian traditions. On the same day, the <em>Heimtückeverordnung</em> makes criticism of the government a crime.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-03-22">
+                        <article class="tl-card">
+                            <time datetime="1933-03-22">22 March 1933</time>
+                            <h3>Dachau opens</h3>
+                            <p>The first prisoners, most of them political opponents, arrive at the new concentration camp near Munich, which Heinrich Himmler had announced two days earlier. Dachau becomes the model for the camp system.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-03-23">
+                        <article class="tl-card">
+                            <time datetime="1933-03-23">23 March 1933</time>
+                            <h3>The Enabling Act</h3>
+                            <p>With SA men lining the hall, the Reichstag votes 444 to 94 to give the government power to pass laws without parliament, even ones that deviate from the constitution. The Communist deputies have been arrested or have fled, and only the SPD votes against. Otto Wels speaks for them: "You can take our lives and our freedom, but not our honour."</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-03-31">
+                        <article class="tl-card">
+                            <time datetime="1933-03-31">31 March 1933</time>
+                            <h3>The states are "coordinated"</h3>
+                            <p>The first law bearing the word <em>Gleichschaltung</em> dissolves the state parliaments and re-forms them according to the Reichstag results, without the Communists. A second law a week later installs <em>Reichsstatthalter</em> (Reich governors) above the state governments.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-04-01">
+                        <article class="tl-card">
+                            <time datetime="1933-04-01">1 April 1933</time>
+                            <h3>Boycott of Jewish businesses</h3>
+                            <p>SA men post themselves outside Jewish-owned shops, law offices and doctors' practices and turn customers away. It is the first nationwide action against Germany's Jews organised by the state.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-04-07">
+                        <article class="tl-card">
+                            <time datetime="1933-04-07">7 April 1933</time>
+                            <h3>Civil service purged</h3>
+                            <p>The Law for the Restoration of the Professional Civil Service lets the regime dismiss officials who are "politically unreliable". Its "Aryan paragraph" forces out civil servants of Jewish descent, and professional associations soon copy the rule.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-04-26">
+                        <article class="tl-card">
+                            <time datetime="1933-04-26">26 April 1933</time>
+                            <h3>The Gestapo is founded</h3>
+                            <p>Göring creates the Secret State Police Office in Prussia. The political police can now arrest people and send them to camps without any court review.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-05-02">
+                        <article class="tl-card">
+                            <time datetime="1933-05-02">2 May 1933</time>
+                            <h3>Trade unions smashed</h3>
+                            <p>One day after the regime staged 1 May as the "Day of National Labour", SA and SS men occupy the free trade unions' offices, seize their assets and arrest their leaders. Workers are forced into the German Labour Front (DAF) under Robert Ley.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-05-10">
+                        <article class="tl-card">
+                            <time datetime="1933-05-10">10 May 1933</time>
+                            <h3>Book burnings</h3>
+                            <p>In Berlin's Opernplatz and in university towns across Germany, students burn books by Jewish, pacifist, socialist and other "un-German" authors, among them Heinrich Heine, Erich Kästner, Karl Marx and Sigmund Freud.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-06-22">
+                        <article class="tl-card">
+                            <time datetime="1933-06-22">22 June 1933</time>
+                            <h3>SPD banned</h3>
+                            <p>Interior Minister Wilhelm Frick bans the Social Democratic Party as "hostile to the state and the people". Its deputies lose their seats, and many of its members are arrested.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-07-05">
+                        <article class="tl-card">
+                            <time datetime="1933-07-05">27 June – 5 July 1933</time>
+                            <h3>The remaining parties dissolve themselves</h3>
+                            <p>Under pressure, the DNVP, the liberal DStP and DVP, the Bavarian People's Party and finally the Catholic Centre Party dissolve themselves one after another. Only the NSDAP is left.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-07-14">
+                        <article class="tl-card">
+                            <time datetime="1933-07-14">14 July 1933</time>
+                            <h3>One-party state by law</h3>
+                            <p>The Law against the Formation of New Parties makes the NSDAP the only legal party in Germany. On the same day, the government passes a law allowing the forced sterilisation of people deemed "hereditarily ill".</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-07-20">
+                        <article class="tl-card">
+                            <time datetime="1933-07-20">20 July 1933</time>
+                            <h3>Concordat with the Vatican</h3>
+                            <p>The Holy See and the Reich sign the <em>Reichskonkordat</em>. In return for guarantees for church life, Catholic clergy withdraw from politics. For the regime it is a major gain in international prestige.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-09-22">
+                        <article class="tl-card">
+                            <time datetime="1933-09-22">22 September 1933</time>
+                            <h3>Reich Chamber of Culture</h3>
+                            <p>Anyone working in literature, music, theatre, film, the fine arts, the press or radio now has to belong to one of Goebbels' chambers. Exclusion amounts to a ban on working in one's profession.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-10-04">
+                        <article class="tl-card">
+                            <time datetime="1933-10-04">4 October 1933</time>
+                            <h3>Editors' Law</h3>
+                            <p>The <em>Schriftleitergesetz</em> makes newspaper editors answerable to the state rather than to their publishers. Jews and anyone deemed politically unreliable are barred from journalism.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-10-14">
+                        <article class="tl-card">
+                            <time datetime="1933-10-14">14 October 1933</time>
+                            <h3>Germany leaves the League of Nations</h3>
+                            <p>Hitler withdraws Germany from the Geneva Disarmament Conference and the League of Nations, and dissolves the Reichstag once more.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1933-11-12">
+                        <article class="tl-card">
+                            <time datetime="1933-11-12">12 November 1933</time>
+                            <h3>Single-list "election"</h3>
+                            <p>Voters can only approve or reject a single NSDAP list, which receives about 92%. A referendum held alongside it, on leaving the League of Nations, returns about 95% approval.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1934-01-30">
+                        <article class="tl-card">
+                            <time datetime="1934-01-30">30 January 1934</time>
+                            <h3>The states are abolished in all but name</h3>
+                            <p>On the first anniversary of the Machtergreifung, the Law on the Reconstruction of the Reich abolishes the state parliaments and transfers the states' sovereign rights to the Reich. Two weeks later, the Reichsrat is abolished as well.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1934-06-30">
+                        <article class="tl-card">
+                            <time datetime="1934-06-30">30 June – 2 July 1934</time>
+                            <h3>Night of the Long Knives</h3>
+                            <p>Hitler has SA chief Ernst Röhm and the SA leadership murdered, alongside conservative critics and old rivals such as Kurt von Schleicher and Gregor Strasser. At least 90 people are killed. The army welcomes the removal of its SA rival.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1934-07-03">
+                        <article class="tl-card">
+                            <time datetime="1934-07-03">3 July 1934</time>
+                            <h3>Murder declared legal</h3>
+                            <p>A one-sentence law declares the killings "legal as acts of self-defence of the state". The state's leaders now openly stand above the law.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1934-08-02">
+                        <article class="tl-card">
+                            <time datetime="1934-08-02">2 August 1934</time>
+                            <h3>Hindenburg dies. Hitler becomes "Führer"</h3>
+                            <p>Under a law passed the day before, the offices of Reich President and Chancellor are merged when Hindenburg dies. Hitler becomes <em>Führer und Reichskanzler</em>. The same day, soldiers swear an oath of loyalty to him personally.</p>
+                        </article>
+                    </li>
+                    <li class="tl-event" data-date="1934-08-19">
+                        <article class="tl-card">
+                            <time datetime="1934-08-19">19 August 1934</time>
+                            <h3>The plebiscite</h3>
+                            <p>A referendum approves the merger of the offices with about 90% of the vote. Nineteen months after Hitler's appointment, the Machtergreifung is complete, and nothing remains of the Weimar Republic's checks on power.</p>
+                        </article>
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <div class="page">
+        <p class="timeline-outro">1933–1934</p>
+    </div>
+
+    <script>
+    (function () {
+        var section = document.querySelector('.timeline');
+        var stage = section.querySelector('.timeline-stage');
+        var inner = section.querySelector('.timeline-inner');
+        var events = Array.prototype.slice.call(section.querySelectorAll('.tl-event'));
+        var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+        var DAY = 864e5;
+        var PX_PER_DAY = 7;      // scroll distance per day of history
+        var MAX_GAP = 650;       // cap for long quiet stretches
+        var CARD_GAP = 40;       // minimum breathing room between cards
+        var LENS = 0.6;          // fisheye strength: >0 spreads the centre, squeezes the edges
+
+        section.classList.add('is-enhanced');
+
+        var bar = document.createElement('div');
+        bar.className = 'tl-bar';
+        inner.insertBefore(bar, inner.firstChild);
+
+        var now = document.createElement('div');
+        now.className = 'tl-now';
+        now.setAttribute('aria-hidden', 'true');
+        inner.appendChild(now);
+
+        function parse(s) {
+            var p = s.split('-');
+            return Date.UTC(+p[0], +p[1] - 1, +p[2]);
+        }
+
+        var eventDays = events.map(function (el) { return parse(el.dataset.date) / DAY; });
+
+        // Month and year ticks along the bar, from January 1933 to September 1934.
+        var ticks = [];
+        for (var y = 1933, m = 0; y < 1934 || m <= 8; m++) {
+            if (m === 12) { m = 0; y++; }
+            var mark = document.createElement('div');
+            mark.className = 'tl-month' + (m === 0 ? ' is-year' : '');
+            mark.setAttribute('aria-hidden', 'true');
+            mark.innerHTML = '<span>' + (m === 0 ? y : MONTHS[m].slice(0, 3)) + '</span>';
+            inner.appendChild(mark);
+            ticks.push({ el: mark, day: Date.UTC(y, m, 1) / DAY, pos: 0 });
+        }
+
+        var items = [];          // everything that lives on the track: {el, pos}
+        var eventPos = [];
+        var trackLength = 0;
+        var viewH = 0;
+        var target = 0;
+        var current = 0;
+        var raf = 0;
+
+        // Map a day to a track position by interpolating between event positions,
+        // so month ticks stay in step with the events around them.
+        function dayToPos(day) {
+            var n = eventDays.length;
+            if (day <= eventDays[0]) return eventPos[0] + (day - eventDays[0]) * PX_PER_DAY;
+            if (day >= eventDays[n - 1]) return eventPos[n - 1] + (day - eventDays[n - 1]) * PX_PER_DAY;
+            for (var i = 1; i < n; i++) {
+                if (day <= eventDays[i]) {
+                    var span = eventDays[i] - eventDays[i - 1];
+                    var t = span ? (day - eventDays[i - 1]) / span : 1;
+                    return eventPos[i - 1] + t * (eventPos[i] - eventPos[i - 1]);
+                }
+            }
+        }
+
+        function posToDay(pos) {
+            var n = eventPos.length;
+            if (pos <= eventPos[0]) return eventDays[0];
+            if (pos >= eventPos[n - 1]) return eventDays[n - 1];
+            for (var i = 1; i < n; i++) {
+                if (pos <= eventPos[i]) {
+                    var span = eventPos[i] - eventPos[i - 1];
+                    var t = span ? (pos - eventPos[i - 1]) / span : 1;
+                    return eventDays[i - 1] + t * (eventDays[i] - eventDays[i - 1]);
+                }
+            }
+        }
+
+        function layout() {
+            viewH = stage.clientHeight;
+            // Spacing is proportional to elapsed time, but never so tight that
+            // cards overlap and never so loose that the reader scrolls through nothing.
+            eventPos = [0];
+            for (var i = 1; i < events.length; i++) {
+                var minGap = events[i - 1].firstElementChild.offsetHeight + CARD_GAP;
+                var timeGap = (eventDays[i] - eventDays[i - 1]) * PX_PER_DAY;
+                eventPos.push(eventPos[i - 1] + Math.max(minGap, Math.min(timeGap, MAX_GAP)));
+            }
+            trackLength = eventPos[eventPos.length - 1];
+            section.style.height = (trackLength + viewH) + 'px';
+
+            items = events.map(function (el, i) { return { el: el, pos: eventPos[i] }; });
+            ticks.forEach(function (t) { t.pos = dayToPos(t.day); items.push(t); });
+
+            onScroll();
+            current = target;
+            render();
+        }
+
+        // Fisheye: d is the normalised distance from the centre (0 = centre, ±1 = edge).
+        function lens(d) {
+            return d * (1 + LENS) / (1 + LENS * Math.abs(d));
+        }
+
+        function render() {
+            var half = viewH / 2;
+            var calm = reduceMotion.matches;
+            for (var i = 0; i < items.length; i++) {
+                var it = items[i];
+                var d = (it.pos - current) / half;
+                var a = Math.abs(d);
+                if (a > 1.35) {
+                    it.el.style.visibility = 'hidden';
+                    continue;
+                }
+                var e = Math.min(a, 1);
+                var y = half + half * lens(d);
+                var scale = calm ? 1 - 0.15 * e : 1 - 0.55 * Math.pow(e, 1.4);
+                var blur = calm ? 0 : 6 * e * e;
+                var opacity = Math.max(0, 1 - Math.pow(a, 2.2));
+                it.el.style.visibility = '';
+                it.el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
+                it.el.style.filter = blur > 0.2 ? 'blur(' + blur.toFixed(1) + 'px)' : '';
+                it.el.style.opacity = opacity.toFixed(3);
+                it.el.style.zIndex = Math.round(100 - a * 50);
+            }
+            var day = new Date(posToDay(current) * DAY);
+            now.textContent = MONTHS[day.getUTCMonth()] + ' ' + day.getUTCFullYear();
+        }
+
+        function step() {
+            // Ease towards the scroll position for a softer, "swooshing" motion.
+            var delta = target - current;
+            current = reduceMotion.matches || Math.abs(delta) < 0.5 ? target : current + delta * 0.14;
+            render();
+            raf = current === target ? 0 : requestAnimationFrame(step);
+        }
+
+        function onScroll() {
+            var top = section.getBoundingClientRect().top;
+            target = Math.max(0, Math.min(trackLength, -top));
+            if (!raf) raf = requestAnimationFrame(step);
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', layout);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
+        layout();
+    })();
+    </script>
 </body>
 </html>
