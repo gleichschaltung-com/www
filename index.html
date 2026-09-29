@@ -793,11 +793,11 @@
             nextBtn.disabled = from >= lastDay - 0.01;
         }
 
-        // Ease towards the scroll position for a softer, "swooshing" motion. Touch
-        // scrolling gets a much shorter ease: there the page should stay under the
-        // finger, and a long trail feels heavy.
+        // Ease towards the scroll position for a softer, "swooshing" motion with the
+        // mouse wheel. Touch scrolling follows the finger directly: any trail there
+        // is felt as lag, and the browser's own momentum already makes it smooth.
         var EASE_WHEEL = 110;    // ms for the remaining distance to shrink by a factor of e
-        var EASE_TOUCH = 35;
+        var EASE_TOUCH = 0;
         var ease = EASE_WHEEL;
         var lastFrame = 0;
         window.addEventListener('touchstart', function () { ease = EASE_TOUCH; }, { passive: true });
@@ -807,7 +807,7 @@
             var dt = lastFrame ? Math.min(now - lastFrame, 100) : 16.7;
             lastFrame = now;
             var delta = target - current;
-            current = reduceMotion.matches || Math.abs(delta * dayPx) < 0.5 ? target
+            current = reduceMotion.matches || !ease || Math.abs(delta * dayPx) < 0.5 ? target
                     : current + delta * (1 - Math.exp(-dt / ease));
             render();
             if (current === target) { raf = 0; lastFrame = 0; }
