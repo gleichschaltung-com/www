@@ -8,6 +8,7 @@ The site is a single static page with no build step:
 | --- | --- |
 | `index.html` | The page itself: the definition, the styles and the script that draws the timeline. |
 | `timeline.md` | The timeline events. **This is the only file you need to touch to change the timeline.** |
+| `favicon.svg`, `favicon.ico`, `apple-touch-icon.png` | The site icon: two switches set the same way, for *gleich* + *schalten*. The `.ico` and `.png` are renders of the SVG. |
 | `CNAME` | The custom domain the site is served from. |
 
 ## Changing the timeline
