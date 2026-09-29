@@ -541,10 +541,10 @@
         var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                       'July', 'August', 'September', 'October', 'November', 'December'];
         var DAY = 864e5;
-        var PX_PER_DAY = 7;      // scroll distance per day of history
-        var MAX_GAP = 650;       // cap for long quiet stretches
-        var CARD_GAP = 40;       // minimum breathing room between cards
-        var LENS = 0.6;          // fisheye strength: >0 spreads the centre, squeezes the edges
+        var PX_PER_DAY = 9;      // scroll distance per day of history
+        var CARD_GAP = 32;       // on-screen breathing room below the centred card
+        var HORIZON = 1.2;       // vanishing distance as a multiple of half the viewport height
+        var MIN_SCALE = 0.25;    // size of an item at the top/bottom edge of the viewport
 
         section.classList.add('is-enhanced');
 
@@ -580,6 +580,7 @@
         var eventPos = [];
         var trackLength = 0;
         var viewH = 0;
+        var horizon = 0;
         var target = 0;
         var current = 0;
         var raf = 0;
@@ -614,13 +615,16 @@
 
         function layout() {
             viewH = stage.clientHeight;
-            // Spacing is proportional to elapsed time, but never so tight that
-            // cards overlap and never so loose that the reader scrolls through nothing.
+            horizon = HORIZON * viewH / 2;
+            // Spacing is proportional to elapsed time, but never so tight that the
+            // next card appears before the centred one has fully passed, and never
+            // so loose that the reader scrolls through nothing.
             eventPos = [0];
             for (var i = 1; i < events.length; i++) {
-                var minGap = events[i - 1].firstElementChild.offsetHeight + CARD_GAP;
+                var need = Math.min(events[i - 1].firstElementChild.offsetHeight + CARD_GAP, horizon * 0.8);
+                var minGap = need / (1 - need / horizon);   // invert project() for that screen distance
                 var timeGap = (eventDays[i] - eventDays[i - 1]) * PX_PER_DAY;
-                eventPos.push(eventPos[i - 1] + Math.max(minGap, Math.min(timeGap, MAX_GAP)));
+                eventPos.push(eventPos[i - 1] + Math.max(minGap, Math.min(timeGap, minGap * 2)));
             }
             trackLength = eventPos[eventPos.length - 1];
             section.style.height = (trackLength + viewH) + 'px';
@@ -633,9 +637,10 @@
             render();
         }
 
-        // Fisheye: d is the normalised distance from the centre (0 = centre, ±1 = edge).
-        function lens(d) {
-            return d * (1 + LENS) / (1 + LENS * Math.abs(d));
+        // Perspective: track distance g maps to a screen offset that approaches
+        // the horizon, so distant items crowd towards the edges and recede.
+        function project(g) {
+            return g / (1 + Math.abs(g) / horizon);
         }
 
         function render() {
@@ -643,22 +648,20 @@
             var calm = reduceMotion.matches;
             for (var i = 0; i < items.length; i++) {
                 var it = items[i];
-                var d = (it.pos - current) / half;
-                var a = Math.abs(d);
-                if (a > 1.35) {
+                var offset = project(it.pos - current);
+                var e = Math.abs(offset) / half;     // 0 at the centre, 1 at the edge
+                var opacity = 1 - Math.pow(e, 3);
+                if (opacity <= 0.02) {
                     it.el.style.visibility = 'hidden';
                     continue;
                 }
-                var e = Math.min(a, 1);
-                var y = half + half * lens(d);
-                var scale = calm ? 1 - 0.15 * e : 1 - 0.55 * Math.pow(e, 1.4);
-                var blur = calm ? 0 : 6 * e * e;
-                var opacity = Math.max(0, 1 - Math.pow(a, 2.2));
+                var scale = calm ? 1 - 0.2 * e : 1 - (1 - MIN_SCALE) * Math.pow(e, 0.8);
+                var blur = calm ? 0 : 9 * e * e;
                 it.el.style.visibility = '';
-                it.el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
+                it.el.style.transform = 'translate3d(0,' + (half + offset).toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
                 it.el.style.filter = blur > 0.2 ? 'blur(' + blur.toFixed(1) + 'px)' : '';
                 it.el.style.opacity = opacity.toFixed(3);
-                it.el.style.zIndex = Math.round(100 - a * 50);
+                it.el.style.zIndex = Math.round(100 - e * 90);
             }
             var day = new Date(posToDay(current) * DAY);
             now.textContent = MONTHS[day.getUTCMonth()] + ' ' + day.getUTCFullYear();
