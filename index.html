@@ -369,6 +369,17 @@
             .container {
                 padding: 24px;
             }
+            /* No margin to sit in on narrow screens: put the badge in the flow, above the card */
+            .gh-badge {
+                position: static;
+                display: flex;
+                width: max-content;
+                margin: 12px 20px 0 auto;
+                box-shadow: none;
+            }
+            .gh-badge + .page {
+                padding-top: 16px;
+            }
             .timeline {
                 --bar-x: 64px;
             }
