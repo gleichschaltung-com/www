@@ -745,6 +745,12 @@
             active = i;
         }
 
+        // Only touch the style when the value actually changes.
+        function set(it, prop, value) {
+            var last = it.last || (it.last = {});
+            if (last[prop] !== value) it.el.style[prop] = last[prop] = value;
+        }
+
         function render() {
             var calm = reduceMotion.matches;
 
@@ -762,7 +768,7 @@
                 var y = focusY + pr.y;
                 // Cards hang below their tick, so allow them to show from above the top edge.
                 if (y > stageH + 20 || y < -(it.event ? 400 : 20)) {
-                    it.el.style.visibility = 'hidden';
+                    set(it, 'visibility', 'hidden');
                     continue;
                 }
                 var t = smooth(pr.t);   // 0 at the focus line, 1 from the plateau outwards
@@ -770,12 +776,14 @@
                 // Blur only in the outer part of the ramp, so cards are sharp as soon as they are big enough to read.
                 var tb = smooth(Math.max(0, (pr.tApex - BLUR_START) / (1 - BLUR_START)));
                 var scale = calm ? 1 - 0.2 * t : 1 - (1 - MIN_SCALE) * t;
-                var blur = calm ? 0 : MAX_BLUR * tb;
-                it.el.style.visibility = '';
-                it.el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
-                it.el.style.filter = 'blur(' + blur.toFixed(2) + 'px)';
-                it.el.style.opacity = (1 - 0.4 * ta).toFixed(3);
-                it.el.style.zIndex = Math.round(100 - t * 90);
+                // Blur in quarter pixels: re-blurring is the costliest part of a frame on
+                // phones, and cards resting at the edges then aren't re-blurred at all.
+                var blur = calm ? 0 : Math.round(MAX_BLUR * tb * 4) / 4;
+                set(it, 'visibility', '');
+                set(it, 'transform', 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')');
+                set(it, 'filter', 'blur(' + blur + 'px)');
+                set(it, 'opacity', (1 - 0.4 * ta).toFixed(2));
+                set(it, 'zIndex', String(Math.round(100 - t * 90)));
             }
             var date = new Date((day0 + current) * DAY);
             now.textContent = MONTHS[date.getUTCMonth()] + ' ' + date.getUTCFullYear();
@@ -785,12 +793,25 @@
             nextBtn.disabled = from >= lastDay - 0.01;
         }
 
-        function step() {
-            // Ease towards the scroll position for a softer, "swooshing" motion.
+        // Ease towards the scroll position for a softer, "swooshing" motion. Touch
+        // scrolling gets a much shorter ease: there the page should stay under the
+        // finger, and a long trail feels heavy.
+        var EASE_WHEEL = 110;    // ms for the remaining distance to shrink by a factor of e
+        var EASE_TOUCH = 35;
+        var ease = EASE_WHEEL;
+        var lastFrame = 0;
+        window.addEventListener('touchstart', function () { ease = EASE_TOUCH; }, { passive: true });
+        window.addEventListener('wheel', function () { ease = EASE_WHEEL; }, { passive: true });
+
+        function step(now) {
+            var dt = lastFrame ? Math.min(now - lastFrame, 100) : 16.7;
+            lastFrame = now;
             var delta = target - current;
-            current = reduceMotion.matches || Math.abs(delta * dayPx) < 0.5 ? target : current + delta * 0.14;
+            current = reduceMotion.matches || Math.abs(delta * dayPx) < 0.5 ? target
+                    : current + delta * (1 - Math.exp(-dt / ease));
             render();
-            raf = current === target ? 0 : requestAnimationFrame(step);
+            if (current === target) { raf = 0; lastFrame = 0; }
+            else raf = requestAnimationFrame(step);
         }
 
         function onScroll() {
