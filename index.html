@@ -375,16 +375,9 @@
             h1 {
                 font-size: min(2em, 8vw);
             }
-            /* No margin to sit in on narrow screens: put the badge in the flow, above the card */
+            /* No margin for the badge on narrow screens; the footer link stays */
             .gh-badge {
-                position: static;
-                display: flex;
-                width: max-content;
-                margin: 12px 20px 0 auto;
-                box-shadow: none;
-            }
-            .gh-badge + .page {
-                padding-top: 16px;
+                display: none;
             }
             .timeline {
                 --bar-x: 64px;
