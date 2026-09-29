@@ -5,28 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gleichschaltung - Definition</title>
     <style>
+        :root {
+            --bg: #f9f9f9;
+            --paper: #ffffff;
+            --ink: #333333;
+            --ink-soft: #666666;
+            --rule: #cccccc;
+            --accent: #7a1f1f;
+        }
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: Georgia, serif;
+            margin: 0;
+            line-height: 1.6;
+            color: var(--ink);
+            background-color: var(--bg);
+        }
+        .page {
             max-width: 800px;
             margin: 0 auto;
             padding: 40px 20px;
-            line-height: 1.6;
-            background-color: #f9f9f9;
         }
         .container {
-            background-color: white;
+            background-color: var(--paper);
             padding: 40px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         h1 {
-            color: #333;
-            border-bottom: 3px solid #666;
+            color: var(--ink);
+            border-bottom: 3px solid var(--ink-soft);
             padding-bottom: 10px;
         }
         .pronunciation {
             font-style: italic;
-            color: #666;
+            color: var(--ink-soft);
             margin-bottom: 20px;
         }
         .definition {
@@ -36,7 +51,7 @@
         .etymology {
             background-color: #f5f5f5;
             padding: 20px;
-            border-left: 4px solid #ccc;
+            border-left: 4px solid var(--rule);
             margin: 20px 0;
         }
         .historical-context {
@@ -44,38 +59,731 @@
             padding-top: 20px;
             border-top: 1px solid #eee;
         }
+
+        /* ---------- Timeline intro ---------- */
+        .timeline-intro {
+            text-align: center;
+            padding: 60px 0 20px;
+        }
+        .timeline-intro h2 {
+            font-size: 32px;
+            font-weight: normal;
+            margin: 0 0 8px;
+        }
+        .timeline-intro p {
+            color: var(--ink-soft);
+            margin: 0 auto;
+            max-width: 560px;
+        }
+        .scroll-hint {
+            display: block;
+            margin-top: 24px;
+            font-size: 14px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+        }
+
+        /* ---------- Timeline: fallback (no JS) is a plain list ---------- */
+        .timeline {
+            --bar-x: 140px;
+            position: relative;
+        }
+        .timeline-stage {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .tl-events {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .tl-event {
+            margin: 0 0 24px;
+        }
+        .tl-card {
+            background: var(--paper);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 18px 22px;
+        }
+        .tl-card time {
+            display: block;
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .tl-card h3 {
+            margin: 4px 0 8px;
+            font-size: 20px;
+            line-height: 1.3;
+        }
+        .tl-card p {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        /* ---------- Timeline: enhanced (JS) pinned stage ---------- */
+        .timeline.is-enhanced .timeline-stage {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            height: 100dvh;
+            max-width: none;
+            padding: 0;
+            overflow: hidden;
+        }
+        .timeline.is-enhanced .timeline-inner {
+            position: relative;
+            height: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .timeline.is-enhanced .tl-bar {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: var(--bar-x);
+            width: 2px;
+            margin-left: -1px;
+            background: var(--ink);
+            -webkit-mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent);
+            mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent);
+        }
+        .timeline.is-enhanced .tl-now {
+            position: absolute;
+            top: 24px;
+            left: 20px;
+            font-size: 13px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            z-index: 1000;
+        }
+        .timeline.is-enhanced .tl-event,
+        .timeline.is-enhanced .tl-month {
+            position: absolute;
+            top: 0;
+            margin: 0;
+            will-change: transform, opacity, filter;
+        }
+        .timeline.is-enhanced .tl-event {
+            left: var(--bar-x);
+            width: min(480px, calc(100% - var(--bar-x) - 20px));
+            transform-origin: 0 0;
+        }
+        .timeline.is-enhanced .tl-event::before {
+            /* the tick: a dot sitting on the bar */
+            content: "";
+            position: absolute;
+            left: -7px;
+            top: -7px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 0 4px var(--bg);
+        }
+        .timeline.is-enhanced .tl-event::after {
+            /* connector the card hangs from */
+            content: "";
+            position: absolute;
+            left: 7px;
+            top: -1px;
+            width: 21px;
+            height: 2px;
+            background: var(--accent);
+        }
+        .timeline.is-enhanced .tl-card {
+            margin-left: 28px;
+            transform: translateY(-22px);
+            transform-origin: 0 22px;
+        }
+        .timeline.is-enhanced .tl-event.is-active {
+            z-index: 200 !important;
+        }
+        /* Played only when the centred card takes the top of a stack of overlapping cards */
+        .timeline.is-enhanced .tl-card.is-lifting {
+            animation: tl-lift 0.45s ease-out;
+        }
+        @keyframes tl-lift {
+            0% { transform: translateY(-22px) scale(0.97); }
+            40% { transform: translateY(-26px) scale(1.03); box-shadow: 0 10px 28px rgba(0,0,0,0.18); }
+            100% { transform: translateY(-22px) scale(1); }
+        }
+        .tl-nav {
+            display: none;
+        }
+        .timeline.is-enhanced .tl-nav {
+            position: absolute;
+            right: 20px;
+            bottom: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .tl-nav button {
+            width: 44px;
+            height: 44px;
+            border: 1px solid var(--rule);
+            border-radius: 50%;
+            background: var(--paper);
+            color: var(--ink);
+            font: 18px Georgia, serif;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        .tl-nav button:hover:not(:disabled) {
+            border-color: var(--ink);
+        }
+        .tl-nav button:disabled {
+            opacity: 0.35;
+            cursor: default;
+        }
+        .timeline.is-enhanced .tl-nav {
+            align-items: flex-end;
+        }
+        .tl-nav .tl-top {
+            width: auto;
+            padding: 0 18px;
+            border-radius: 22px;
+            font-size: 15px;
+            white-space: nowrap;
+        }
+        .tl-nav [hidden] {
+            display: none;
+        }
+        .timeline.is-enhanced .tl-month {
+            left: 0;
+            width: var(--bar-x);
+            padding-right: 18px;
+            text-align: right;
+            font-size: 14px;
+            line-height: 1;
+            color: var(--ink-soft);
+            transform-origin: 100% 0;
+        }
+        .timeline.is-enhanced .tl-month span {
+            display: inline-block;
+            transform: translateY(-50%);
+        }
+        .timeline.is-enhanced .tl-month::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: -1px;
+            width: 10px;
+            height: 2px;
+            background: var(--ink);
+        }
+        .timeline.is-enhanced .tl-month.is-year {
+            font-size: 26px;
+            color: var(--ink);
+        }
+        .timeline.is-enhanced .tl-month.is-year::after {
+            width: 16px;
+        }
+
+        .tl-status {
+            text-align: center;
+            color: var(--ink-soft);
+        }
+        .tl-status.is-error {
+            color: var(--accent);
+        }
+        .timeline.is-enhanced .tl-status {
+            position: absolute;
+            left: 20px;
+            right: 20px;
+            bottom: 90px;
+            z-index: 1000;
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: var(--paper);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 14px;
+        }
+        .timeline-outro {
+            text-align: center;
+            padding: 40px 0 80px;
+            color: var(--ink-soft);
+        }
+        .timeline-outro a {
+            display: inline-block;
+            margin-top: 12px;
+            color: var(--ink);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 24px;
+            }
+            .timeline {
+                --bar-x: 64px;
+            }
+            .timeline.is-enhanced .tl-month {
+                font-size: 12px;
+                padding-right: 14px;
+            }
+            .timeline.is-enhanced .tl-month.is-year {
+                font-size: 16px;
+            }
+            .timeline.is-enhanced .tl-card {
+                margin-left: 22px;
+                padding: 14px 16px;
+            }
+            .timeline.is-enhanced .tl-event::after {
+                width: 15px;
+            }
+            .timeline.is-enhanced .tl-nav {
+                right: 12px;
+                bottom: 16px;
+            }
+            .tl-card h3 {
+                font-size: 18px;
+            }
+            .tl-card p {
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Gleichschaltung</h1>
-        
-        <div class="pronunciation">
-            <strong>Pronunciation:</strong> /ˈɡlaɪçʃaltʊŋ/
+<body id="top">
+    <div class="page">
+        <div class="container">
+            <h1>Gleichschaltung</h1>
+
+            <div class="pronunciation">
+                <strong>Pronunciation:</strong> /ˈɡlaɪçʃaltʊŋ/
+            </div>
+
+            <div class="definition">
+                <strong>Definition:</strong> A German term meaning "coordination" or "bringing into line," referring to the Nazi policy of establishing total control over all aspects of German society by eliminating independent institutions and forcing conformity to Nazi ideology.
+            </div>
+
+            <div class="etymology">
+                <h3>Etymology</h3>
+                <p><strong>German:</strong> <em>gleich</em> (equal, same) + <em>schalten</em> (to switch, to coordinate) + <em>-ung</em> (noun suffix)</p>
+                <p>Literally translates to "switching to the same" or "making equal."</p>
+            </div>
+
+            <div class="historical-context">
+                <h3>Historical Context</h3>
+                <p>Gleichschaltung was implemented by the Nazi Party between 1933 and 1935 to systematically eliminate political opposition and transform German society into a totalitarian state. This process involved:</p>
+                <ul>
+                    <li>Dissolving independent trade unions and political parties</li>
+                    <li>Taking control of state governments</li>
+                    <li>Coordinating cultural and educational institutions</li>
+                    <li>Establishing Nazi control over professional associations</li>
+                    <li>Forcing compliance with Nazi ideology across all sectors of society</li>
+                </ul>
+                <p>The term represents one of the key mechanisms by which the Nazi regime consolidated power and eliminated democratic institutions in Germany.</p>
+            </div>
         </div>
-        
-        <div class="definition">
-            <strong>Definition:</strong> A German term meaning "coordination" or "bringing into line," referring to the Nazi policy of establishing total control over all aspects of German society by eliminating independent institutions and forcing conformity to Nazi ideology.
-        </div>
-        
-        <div class="etymology">
-            <h3>Etymology</h3>
-            <p><strong>German:</strong> <em>gleich</em> (equal, same) + <em>schalten</em> (to switch, to coordinate) + <em>-ung</em> (noun suffix)</p>
-            <p>Literally translates to "switching to the same" or "making equal."</p>
-        </div>
-        
-        <div class="historical-context">
-            <h3>Historical Context</h3>
-            <p>Gleichschaltung was implemented by the Nazi Party between 1933 and 1935 to systematically eliminate political opposition and transform German society into a totalitarian state. This process involved:</p>
-            <ul>
-                <li>Dissolving independent trade unions and political parties</li>
-                <li>Taking control of state governments</li>
-                <li>Coordinating cultural and educational institutions</li>
-                <li>Establishing Nazi control over professional associations</li>
-                <li>Forcing compliance with Nazi ideology across all sectors of society</li>
-            </ul>
-            <p>The term represents one of the key mechanisms by which the Nazi regime consolidated power and eliminated democratic institutions in Germany.</p>
+
+        <div class="timeline-intro">
+            <h2>From Machtergreifung to Führerstaat</h2>
+            <p>In just nineteen months, a constitutional democracy was turned into a dictatorship. Scroll through the steps that made it happen.</p>
+            <span class="scroll-hint" aria-hidden="true">Scroll ↓</span>
         </div>
     </div>
+
+    <section class="timeline" aria-label="Timeline of the Machtergreifung, 1933–1934">
+        <div class="timeline-stage">
+            <div class="timeline-inner">
+                <ol class="tl-events"></ol>
+                <noscript><p class="tl-status">The interactive timeline needs JavaScript. You can <a href="timeline.md">read the events as text</a> instead.</p></noscript>
+            </div>
+        </div>
+    </section>
+
+    <div class="page">
+        <p class="timeline-outro">1933–1934<br><a href="#top">↑ Back to top</a></p>
+    </div>
+
+    <script>
+    // Loads the events from timeline.md (see the instructions at the top of that
+    // file) and turns them into the list the timeline below is built from.
+    (function () {
+        var MONTHS = ['january', 'february', 'march', 'april', 'may', 'june',
+                      'july', 'august', 'september', 'october', 'november', 'december'];
+        var DATE_RE = new RegExp('(\\d{1,2})\\.?\\s*(?:[–—-]\\s*\\d{1,2}\\.?\\s*)?(' + MONTHS.join('|') + ')', 'i');
+
+        var list = document.querySelector('.tl-events');
+        var status = document.createElement('p');
+        status.className = 'tl-status';
+        status.textContent = 'Loading the timeline…';
+        list.parentNode.insertBefore(status, list.nextSibling);
+
+        // "30 January 1933" or a span like "27 June – 5 July 1933": the first day counts.
+        function parseDate(text) {
+            var m = DATE_RE.exec(text);
+            if (!m) return null;
+            var y = /\b\d{4}\b/.exec(text.slice(m.index));
+            if (!y) return null;
+            return new Date(Date.UTC(+y[0], MONTHS.indexOf(m[2].toLowerCase()), +m[1]));
+        }
+
+        function escapeHtml(t) {
+            return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // The little Markdown the file allows: links, **bold** and *italics*.
+        function inline(t) {
+            return escapeHtml(t)
+                .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/(^|[^*\w])[*_](?!\s)(.+?)[*_](?![*\w])/g, '$1<em>$2</em>');
+        }
+
+        function parse(text) {
+            var problems = [];
+            var entries = text.replace(/\r/g, '').split(/^## +/m).slice(1).map(function (block, index) {
+                var lines = block.split('\n');
+                var title = lines.shift().trim();
+                while (lines.length && !lines[0].trim()) lines.shift();
+                var m = /^\W*date\s*:\W*(.+?)\s*$/i.exec(lines[0] || '');
+                if (m) lines.shift();
+                var label = m ? m[1].replace(/\*+$/, '').trim() : '';
+                var date = parseDate(label);
+                if (!date) problems.push('"' + title + '" has no date the timeline can read' +
+                                         (label ? ' ("' + label + '")' : '') + '.');
+                var paragraphs = lines.join('\n').split(/\n\s*\n/)
+                    .map(function (p) { return p.replace(/\s*\n\s*/g, ' ').trim(); })
+                    .filter(Boolean);
+                return { title: title, label: label, date: date, paragraphs: paragraphs, index: index };
+            }).filter(function (e) { return e.date; });
+            entries.sort(function (a, b) { return a.date - b.date || a.index - b.index; });
+            return { entries: entries, problems: problems };
+        }
+
+        function render(entries) {
+            list.innerHTML = entries.map(function (e) {
+                var iso = e.date.toISOString().slice(0, 10);
+                return '<li class="tl-event" data-date="' + iso + '"><article class="tl-card">' +
+                    '<time datetime="' + iso + '">' + escapeHtml(e.label) + '</time>' +
+                    '<h3>' + inline(e.title) + '</h3>' +
+                    e.paragraphs.map(function (p) { return '<p>' + inline(p) + '</p>'; }).join('') +
+                    '</article></li>';
+            }).join('');
+        }
+
+        fetch('timeline.md', { cache: 'no-cache' })
+            .then(function (res) {
+                if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+                return res.text();
+            })
+            .then(function (text) {
+                var result = parse(text);
+                result.problems.forEach(function (p) { console.warn('timeline.md: ' + p); });
+                if (!result.entries.length) throw new Error('no events found');
+                render(result.entries);
+                if (result.problems.length) {
+                    status.className = 'tl-status is-error';
+                    status.textContent = 'Some events in timeline.md were skipped: ' + result.problems.join(' ');
+                } else {
+                    status.remove();
+                }
+                initTimeline();
+            })
+            .catch(function (err) {
+                console.error('timeline.md could not be loaded:', err);
+                status.className = 'tl-status is-error';
+                status.innerHTML = 'The timeline could not be loaded. You can <a href="timeline.md">read the events as text</a> instead.';
+            });
+    })();
+
+    function initTimeline() {
+        var section = document.querySelector('.timeline');
+        var stage = section.querySelector('.timeline-stage');
+        var inner = section.querySelector('.timeline-inner');
+        var events = Array.prototype.slice.call(section.querySelectorAll('.tl-event'));
+        var cards = events.map(function (el) { return el.querySelector('.tl-card'); });
+        var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+        var DAY = 864e5;
+        var DAY_HEIGHT = 0.06;   // on-screen distance per day, as a fraction of the viewport height
+        var FOCUS = 0.4;         // height (share of the viewport) where the ticks peak; cards hang below it
+        var PLATEAU_TOP = 0.2;   // above this line and below the next one, items stop changing
+        var PLATEAU_BOTTOM = 0.8;
+        var APEX_TOP = 0.32;     // between these lines items stay fully sharp (size still peaks at FOCUS)
+        var APEX_BOTTOM = 0.54;
+        var BLUR_START = 0.4;    // share of the way from apex to plateau before blur sets in
+        var MIN_SCALE = 0.45;    // item size once it reaches the plateau
+        var MAX_BLUR = 6;        // blur in px once it reaches the plateau
+        // Scrolling speeds up in empty stretches: within CALM_DAYS of an event one day
+        // costs one day of scrolling; over the next RAMP_DAYS that drops to GAP_COST.
+        var CALM_DAYS = 5;
+        var RAMP_DAYS = 10;
+        var GAP_COST = 0.2;
+        var STEP = 0.25;         // resolution of the scroll lookup table, in days
+
+        section.classList.add('is-enhanced');
+
+        var bar = document.createElement('div');
+        bar.className = 'tl-bar';
+        inner.insertBefore(bar, inner.firstChild);
+
+        var now = document.createElement('div');
+        now.className = 'tl-now';
+        now.setAttribute('aria-hidden', 'true');
+        inner.appendChild(now);
+
+        var nav = document.createElement('div');
+        nav.className = 'tl-nav';
+        nav.innerHTML = '<button type="button" aria-label="Previous event">↑</button>' +
+                        '<button type="button" aria-label="Next event">↓</button>' +
+                        '<button type="button" class="tl-top" hidden>↑ Back to top</button>';
+        inner.appendChild(nav);
+        var prevBtn = nav.children[0];
+        var nextBtn = nav.children[1];
+        var topBtn = nav.children[2];
+
+        function parse(s) {
+            var p = s.split('-');
+            return Date.UTC(+p[0], +p[1] - 1, +p[2]) / DAY;
+        }
+
+        var day0 = parse(events[0].dataset.date);
+        var eventDays = events.map(function (el) { return parse(el.dataset.date) - day0; });
+        var lastDay = eventDays[eventDays.length - 1];
+
+        // Month and year ticks along the bar, from the month of the first event
+        // to the month after the last.
+        var ticks = [];
+        var first = new Date(day0 * DAY), last = new Date((day0 + lastDay) * DAY);
+        var endY = last.getUTCFullYear() + (last.getUTCMonth() === 11 ? 1 : 0), endM = (last.getUTCMonth() + 1) % 12;
+        for (var y = first.getUTCFullYear(), m = first.getUTCMonth(); y < endY || (y === endY && m <= endM); m++) {
+            if (m === 12) { m = 0; y++; if (y > endY || (y === endY && m > endM)) break; }
+            var mark = document.createElement('div');
+            mark.className = 'tl-month' + (m === 0 ? ' is-year' : '');
+            mark.setAttribute('aria-hidden', 'true');
+            mark.innerHTML = '<span>' + (m === 0 ? y : MONTHS[m].slice(0, 3)) + '</span>';
+            inner.appendChild(mark);
+            ticks.push({ el: mark, day: Date.UTC(y, m, 1) / DAY - day0 });
+        }
+
+        var items = events.map(function (el, i) { return { el: el, day: eventDays[i], event: true }; })
+            .concat(ticks);
+
+        // Relative scroll cost of each day: 1 near events, dropping to GAP_COST in empty stretches.
+        function rate(day) {
+            var gap = Infinity;
+            for (var k = 0; k < eventDays.length; k++) gap = Math.min(gap, Math.abs(eventDays[k] - day));
+            return 1 - (1 - GAP_COST) * Math.min(1, Math.max(0, gap - CALM_DAYS) / RAMP_DAYS);
+        }
+
+        // Lookup table from scroll offset (px) to day.
+        var knotPx = [], knotDay = [], eventScroll = [], totalScroll = 0;
+
+        function buildScrollMap() {
+            knotPx = []; knotDay = []; eventScroll = [];
+            var px = 0, next = 0;
+            for (var i = 0; i * STEP <= lastDay + 1e-9; i++) {
+                var day = i * STEP;
+                if (i > 0) px += rate(day - STEP / 2) * STEP * dayPx;
+                knotPx.push(px); knotDay.push(day);
+                while (next < eventDays.length && eventDays[next] <= day + 1e-9) eventScroll[next++] = px;
+            }
+            totalScroll = px;
+        }
+
+        function scrollToDay(px) {
+            var lo = 0, hi = knotPx.length - 1;
+            while (hi - lo > 1) {
+                var m = (lo + hi) >> 1;
+                if (knotPx[m] <= px) lo = m; else hi = m;
+            }
+            var span = knotPx[hi] - knotPx[lo];
+            return knotDay[lo] + (span ? (px - knotPx[lo]) / span : 0) * (knotDay[hi] - knotDay[lo]);
+        }
+
+        var dayPx = 0;
+        var viewH = 0;
+        var focusY = 0;
+        var above = {}, below = {};
+        var target = 0;          // position along the timeline, in days
+        var current = 0;
+        var raf = 0;
+        var active = -1;
+
+        function layout() {
+            viewH = stage.clientHeight;
+            dayPx = DAY_HEIGHT * viewH;
+            buildScrollMap();
+            section.style.height = (totalScroll + viewH) + 'px';
+
+            focusY = FOCUS * viewH;
+            above = side((FOCUS - PLATEAU_TOP) * viewH, (FOCUS - APEX_TOP) * viewH);
+            below = side((PLATEAU_BOTTOM - FOCUS) * viewH, (APEX_BOTTOM - FOCUS) * viewH);
+
+            onScroll();
+            current = target;
+            render();
+        }
+
+        // Perspective on each side of the focus line: the horizon sits at twice
+        // the plateau distance, so items reach the plateau moving at a quarter speed.
+        function side(plateauY, apexY) {
+            var horizon = 2 * plateauY;
+            return { y: plateauY, apex: apexY, horizon: horizon, g: plateauY / (1 - plateauY / horizon),
+                     slope: Math.pow(1 - plateauY / horizon, 2) };
+        }
+
+        // Track distance g (px) from the focus line maps to a screen offset that is
+        // squeezed towards the edges. Past the plateau it continues in a straight
+        // line, so items there move at a constant rate. Returns the offset, how
+        // far the item is from the focus line towards the plateau (t, for size)
+        // and from the apex band towards the plateau (tApex, for clarity), both 0..1.
+        function project(g) {
+            var p = g < 0 ? above : below, a = Math.abs(g);
+            var y = a <= p.g ? a / (1 + a / p.horizon) : p.y + (a - p.g) * p.slope;
+            return { y: g < 0 ? -y : y, t: Math.min(y / p.y, 1),
+                     tApex: Math.min(Math.max(0, (y - p.apex) / (p.y - p.apex)), 1) };
+        }
+
+        // Flat at both ends, so items ease into the centre and into the plateau
+        // instead of peaking sharply.
+        function smooth(t) {
+            return t * t * (3 - 2 * t);
+        }
+
+        // Does event i share screen space with one of its neighbours?
+        function overlaps(i) {
+            return (i > 0 && (eventDays[i] - eventDays[i - 1]) * dayPx < cards[i - 1].offsetHeight) ||
+                   (i < events.length - 1 && (eventDays[i + 1] - eventDays[i]) * dayPx < cards[i].offsetHeight);
+        }
+
+        function setActive(i) {
+            if (i === active) return;
+            if (active >= 0) events[active].classList.remove('is-active');
+            if (i >= 0) {
+                events[i].classList.add('is-active');
+                if (active >= 0 && !reduceMotion.matches && overlaps(i)) {
+                    var card = cards[i];
+                    card.classList.remove('is-lifting');
+                    void card.offsetWidth;   // restart the animation
+                    card.classList.add('is-lifting');
+                }
+            }
+            active = i;
+        }
+
+        function render() {
+            var calm = reduceMotion.matches;
+
+            // The event nearest the centre sits on top of the stack.
+            var nearest = -1, best = Infinity;
+            for (var k = 0; k < events.length; k++) {
+                var dist = Math.abs(eventDays[k] - current);
+                if (dist < best) { best = dist; nearest = k; }
+            }
+            setActive(best * dayPx > viewH / 2 ? -1 : nearest);
+
+            for (var i = 0; i < items.length; i++) {
+                var it = items[i];
+                var pr = project((it.day - current) * dayPx);
+                var y = focusY + pr.y;
+                // Cards hang below their tick, so allow them to show from above the top edge.
+                if (y > viewH + 20 || y < -(it.event ? 400 : 20)) {
+                    it.el.style.visibility = 'hidden';
+                    continue;
+                }
+                var t = smooth(pr.t);   // 0 at the focus line, 1 from the plateau outwards
+                var ta = smooth(pr.tApex);   // 0 within the apex band, 1 from the plateau outwards
+                // Blur only in the outer part of the ramp, so cards are sharp as soon as they are big enough to read.
+                var tb = smooth(Math.max(0, (pr.tApex - BLUR_START) / (1 - BLUR_START)));
+                var scale = calm ? 1 - 0.2 * t : 1 - (1 - MIN_SCALE) * t;
+                var blur = calm ? 0 : MAX_BLUR * tb;
+                it.el.style.visibility = '';
+                it.el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
+                it.el.style.filter = 'blur(' + blur.toFixed(2) + 'px)';
+                it.el.style.opacity = (1 - 0.4 * ta).toFixed(3);
+                it.el.style.zIndex = Math.round(100 - t * 90);
+            }
+            var date = new Date((day0 + current) * DAY);
+            now.textContent = MONTHS[date.getUTCMonth()] + ' ' + date.getUTCFullYear();
+
+            var from = heading >= 0 ? eventDays[heading] : target;
+            prevBtn.disabled = from <= eventDays[0] + 0.01;
+            nextBtn.disabled = from >= lastDay - 0.01;
+            // Once the last event is actually reached, the next button turns into "back to top".
+            var atEnd = target >= lastDay - 0.01;
+            if (atEnd !== nextBtn.hidden) {
+                var hadFocus = document.activeElement === (atEnd ? nextBtn : topBtn);
+                nextBtn.hidden = atEnd;
+                topBtn.hidden = !atEnd;
+                // preventScroll: moving focus must not cancel a smooth scroll in progress.
+                if (hadFocus) (atEnd ? topBtn : nextBtn).focus({ preventScroll: true });
+            }
+        }
+
+        function step() {
+            // Ease towards the scroll position for a softer, "swooshing" motion.
+            var delta = target - current;
+            current = reduceMotion.matches || Math.abs(delta * dayPx) < 0.5 ? target : current + delta * 0.14;
+            render();
+            raf = current === target ? 0 : requestAnimationFrame(step);
+        }
+
+        function onScroll() {
+            var top = section.getBoundingClientRect().top;
+            target = scrollToDay(Math.max(0, Math.min(totalScroll, -top)));
+            if (heading >= 0 && Math.abs(-top - eventScroll[heading]) < 2) heading = -1;   // arrived (no scrollend in older browsers)
+            if (!raf) raf = requestAnimationFrame(step);
+        }
+
+        // Event the buttons are currently scrolling to, so repeated clicks
+        // keep advancing from there instead of from where the scroll is so far.
+        var heading = -1;
+
+        function jump(dir) {
+            var to = -1;
+            if (heading >= 0) {
+                to = heading + dir;
+            } else {
+                for (var n = 0; n < eventDays.length; n++) {
+                    var i = dir > 0 ? n : eventDays.length - 1 - n;
+                    if (dir > 0 ? eventDays[i] > target + 0.01 : eventDays[i] < target - 0.01) { to = i; break; }
+                }
+            }
+            if (to < 0 || to >= eventDays.length) return;
+            heading = to;
+            var sectionTop = section.getBoundingClientRect().top + window.pageYOffset;
+            window.scrollTo({
+                top: sectionTop + eventScroll[to],
+                behavior: reduceMotion.matches ? 'auto' : 'smooth'
+            });
+        }
+
+        // Forget the destination once the scroll arrives or the reader takes over
+        // (but not when the keypress is the reader activating a jump button).
+        function stopHeading(e) {
+            if (!e || !nav.contains(e.target)) heading = -1;
+        }
+        window.addEventListener('scrollend', stopHeading);
+        ['wheel', 'touchstart', 'keydown'].forEach(function (type) {
+            window.addEventListener(type, stopHeading, { passive: true });
+        });
+
+        prevBtn.addEventListener('click', function () { jump(-1); });
+        nextBtn.addEventListener('click', function () { jump(1); });
+        topBtn.addEventListener('click', function () {
+            heading = -1;
+            window.scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+        });
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', layout);
+        layout();
+    }
+    </script>
 </body>
 </html>
