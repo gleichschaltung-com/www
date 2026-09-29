@@ -601,6 +601,7 @@
         var CALM_DAYS = 5;
         var RAMP_DAYS = 10;
         var GAP_COST = 0.2;
+        var HOLD_PX = 250;       // extra scrolling (about 2–3 wheel notches) during which a card rests at the apex
         var STEP = 0.25;         // resolution of the scroll lookup table, in days
 
         section.classList.add('is-enhanced');
@@ -646,29 +647,43 @@
         var items = events.map(function (el, i) { return { el: el, day: eventDays[i], event: true }; })
             .concat(ticks);
 
-        // Scroll cost of each day, accumulated into a lookup table (in days of scrolling).
-        var cost = [0];
-        for (var d = STEP; d < lastDay + STEP / 2; d += STEP) {
-            var mid = d - STEP / 2, gap = Infinity;
-            for (var k = 0; k < eventDays.length; k++) gap = Math.min(gap, Math.abs(eventDays[k] - mid));
-            var rate = 1 - (1 - GAP_COST) * Math.min(1, Math.max(0, gap - CALM_DAYS) / RAMP_DAYS);
-            cost.push(cost[cost.length - 1] + rate * STEP);
-        }
-        var totalCost = cost[cost.length - 1];
-
-        function dayToCost(day) {
-            var i = Math.min(Math.floor(day / STEP), cost.length - 2);
-            return cost[i] + (cost[i + 1] - cost[i]) * (day / STEP - i);
+        // Relative scroll cost of each day: 1 near events, dropping to GAP_COST in empty stretches.
+        function rate(day) {
+            var gap = Infinity;
+            for (var k = 0; k < eventDays.length; k++) gap = Math.min(gap, Math.abs(eventDays[k] - day));
+            return 1 - (1 - GAP_COST) * Math.min(1, Math.max(0, gap - CALM_DAYS) / RAMP_DAYS);
         }
 
-        function costToDay(c) {
-            var lo = 0, hi = cost.length - 1;
+        // Lookup table from scroll offset (px) to day. Each event adds a flat
+        // stretch of HOLD_PX where scrolling leaves the timeline at rest.
+        var knotPx = [], knotDay = [], eventScroll = [], totalScroll = 0;
+
+        function buildScrollMap() {
+            knotPx = []; knotDay = []; eventScroll = [];
+            var px = 0, next = 0;
+            for (var i = 0; i * STEP <= lastDay + 1e-9; i++) {
+                var day = i * STEP;
+                if (i > 0) px += rate(day - STEP / 2) * STEP * dayPx;
+                knotPx.push(px); knotDay.push(day);
+                while (next < eventDays.length && eventDays[next] <= day + 1e-9) {
+                    eventScroll[next++] = px + HOLD_PX / 2;
+                    if (next === 1 || eventDays[next - 1] !== eventDays[next - 2]) {
+                        px += HOLD_PX;
+                        knotPx.push(px); knotDay.push(day);
+                    }
+                }
+            }
+            totalScroll = px;
+        }
+
+        function scrollToDay(px) {
+            var lo = 0, hi = knotPx.length - 1;
             while (hi - lo > 1) {
                 var m = (lo + hi) >> 1;
-                if (cost[m] <= c) lo = m; else hi = m;
+                if (knotPx[m] <= px) lo = m; else hi = m;
             }
-            var span = cost[hi] - cost[lo];
-            return (lo + (span ? (c - cost[lo]) / span : 0)) * STEP;
+            var span = knotPx[hi] - knotPx[lo];
+            return knotDay[lo] + (span ? (px - knotPx[lo]) / span : 0) * (knotDay[hi] - knotDay[lo]);
         }
 
         var dayPx = 0;
@@ -683,7 +698,8 @@
         function layout() {
             viewH = stage.clientHeight;
             dayPx = DAY_HEIGHT * viewH;
-            section.style.height = (totalCost * dayPx + viewH) + 'px';
+            buildScrollMap();
+            section.style.height = (totalScroll + viewH) + 'px';
 
             focusY = FOCUS * viewH;
             above = side((FOCUS - PLATEAU_TOP) * viewH);
@@ -771,8 +787,9 @@
             var date = new Date((day0 + current) * DAY);
             now.textContent = MONTHS[date.getUTCMonth()] + ' ' + date.getUTCFullYear();
 
-            prevBtn.disabled = target <= eventDays[0] + 0.01;
-            nextBtn.disabled = target >= lastDay - 0.01;
+            var from = heading >= 0 ? eventDays[heading] : target;
+            prevBtn.disabled = from <= eventDays[0] + 0.01;
+            nextBtn.disabled = from >= lastDay - 0.01;
         }
 
         function step() {
@@ -785,23 +802,44 @@
 
         function onScroll() {
             var top = section.getBoundingClientRect().top;
-            target = costToDay(Math.max(0, Math.min(totalCost, -top / dayPx)));
+            target = scrollToDay(Math.max(0, Math.min(totalScroll, -top)));
+            if (heading >= 0 && Math.abs(-top - eventScroll[heading]) < 2) heading = -1;   // arrived (no scrollend in older browsers)
             if (!raf) raf = requestAnimationFrame(step);
         }
 
+        // Event the buttons are currently scrolling to, so repeated clicks
+        // keep advancing from there instead of from where the scroll is so far.
+        var heading = -1;
+
         function jump(dir) {
-            var to = null;
-            for (var i = 0; i < eventDays.length; i++) {
-                var day = eventDays[dir > 0 ? i : eventDays.length - 1 - i];
-                if (dir > 0 ? day > target + 0.01 : day < target - 0.01) { to = day; break; }
+            var to = -1;
+            if (heading >= 0) {
+                to = heading + dir;
+            } else {
+                for (var n = 0; n < eventDays.length; n++) {
+                    var i = dir > 0 ? n : eventDays.length - 1 - n;
+                    if (dir > 0 ? eventDays[i] > target + 0.01 : eventDays[i] < target - 0.01) { to = i; break; }
+                }
             }
-            if (to === null) return;
+            if (to < 0 || to >= eventDays.length) return;
+            heading = to;
             var sectionTop = section.getBoundingClientRect().top + window.pageYOffset;
             window.scrollTo({
-                top: sectionTop + dayToCost(to) * dayPx,
+                // Land in the middle of the event's rest stretch.
+                top: sectionTop + eventScroll[to],
                 behavior: reduceMotion.matches ? 'auto' : 'smooth'
             });
         }
+
+        // Forget the destination once the scroll arrives or the reader takes over
+        // (but not when the keypress is the reader activating a jump button).
+        function stopHeading(e) {
+            if (!e || !nav.contains(e.target)) heading = -1;
+        }
+        window.addEventListener('scrollend', stopHeading);
+        ['wheel', 'touchstart', 'keydown'].forEach(function (type) {
+            window.addEventListener(type, stopHeading, { passive: true });
+        });
 
         prevBtn.addEventListener('click', function () { jump(-1); });
         nextBtn.addEventListener('click', function () { jump(1); });
