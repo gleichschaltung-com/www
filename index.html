@@ -880,9 +880,12 @@
             if (heading >= 0) {
                 to = heading + dir;
             } else {
+                // Compare in pixels with some slack: a jump can land a fraction of a
+                // pixel short of its card, which must still count as being there.
+                var pos = window.pageYOffset - sectionTop;
                 for (var n = 0; n < eventDays.length; n++) {
                     var i = dir > 0 ? n : eventDays.length - 1 - n;
-                    if (dir > 0 ? eventDays[i] > target + 0.01 : eventDays[i] < target - 0.01) { to = i; break; }
+                    if (dir > 0 ? eventScroll[i] > pos + 3 : eventScroll[i] < pos - 3) { to = i; break; }
                 }
             }
             if (to < 0 || to >= eventDays.length) return;
