@@ -612,7 +612,7 @@
         var FOCUS = 0.4;         // height (share of the viewport) where the ticks peak; cards hang below it
         var PLATEAU_TOP = 0.2;   // above this line and below the next one, items stop changing
         var PLATEAU_BOTTOM = 0.8;
-        var APEX_TOP = 0.32;     // between these lines items stay at full size and sharpness
+        var APEX_TOP = 0.32;     // between these lines items stay fully sharp (size still peaks at FOCUS)
         var APEX_BOTTOM = 0.54;
         var BLUR_START = 0.4;    // share of the way from apex to plateau before blur sets in
         var MIN_SCALE = 0.45;    // item size once it reaches the plateau
@@ -735,12 +735,14 @@
 
         // Track distance g (px) from the focus line maps to a screen offset that is
         // squeezed towards the edges. Past the plateau it continues in a straight
-        // line, so items there move at a constant rate. Returns the offset and
-        // how far along from the apex band towards the plateau the item is (0..1).
+        // line, so items there move at a constant rate. Returns the offset, how
+        // far the item is from the focus line towards the plateau (t, for size)
+        // and from the apex band towards the plateau (tApex, for clarity), both 0..1.
         function project(g) {
             var p = g < 0 ? above : below, a = Math.abs(g);
             var y = a <= p.g ? a / (1 + a / p.horizon) : p.y + (a - p.g) * p.slope;
-            return { y: g < 0 ? -y : y, t: Math.min(Math.max(0, (y - p.apex) / (p.y - p.apex)), 1) };
+            return { y: g < 0 ? -y : y, t: Math.min(y / p.y, 1),
+                     tApex: Math.min(Math.max(0, (y - p.apex) / (p.y - p.apex)), 1) };
         }
 
         // Flat at both ends, so items ease into the centre and into the plateau
@@ -790,15 +792,16 @@
                     it.el.style.visibility = 'hidden';
                     continue;
                 }
-                var t = smooth(pr.t);   // 0 within the apex band, 1 from the plateau outwards
+                var t = smooth(pr.t);   // 0 at the focus line, 1 from the plateau outwards
+                var ta = smooth(pr.tApex);   // 0 within the apex band, 1 from the plateau outwards
                 // Blur only in the outer part of the ramp, so cards are sharp as soon as they are big enough to read.
-                var tb = smooth(Math.max(0, (pr.t - BLUR_START) / (1 - BLUR_START)));
+                var tb = smooth(Math.max(0, (pr.tApex - BLUR_START) / (1 - BLUR_START)));
                 var scale = calm ? 1 - 0.2 * t : 1 - (1 - MIN_SCALE) * t;
                 var blur = calm ? 0 : MAX_BLUR * tb;
                 it.el.style.visibility = '';
                 it.el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
                 it.el.style.filter = 'blur(' + blur.toFixed(2) + 'px)';
-                it.el.style.opacity = (1 - 0.4 * t).toFixed(3);
+                it.el.style.opacity = (1 - 0.4 * ta).toFixed(3);
                 it.el.style.zIndex = Math.round(100 - t * 90);
             }
             var date = new Date((day0 + current) * DAY);
