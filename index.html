@@ -132,9 +132,11 @@
         .timeline.is-enhanced .timeline-stage {
             position: sticky;
             top: 0;
+            /* As tall as the screen with mobile browser bars hidden, so the stage never
+               resizes when they slide in and out; with the bars showing, the bottom
+               of it simply sits underneath them. */
             height: 100vh;
-            /* The small viewport height stays put while mobile browser bars slide in and out */
-            height: 100svh;
+            height: 100lvh;
             max-width: none;
             padding: 0;
             overflow: hidden;
@@ -224,6 +226,8 @@
             position: absolute;
             right: 20px;
             bottom: 24px;
+            /* follow the visible bottom edge, above any browser bar */
+            bottom: calc(24px + 100lvh - 100dvh);
             z-index: 1000;
             display: flex;
             flex-direction: column;
@@ -291,6 +295,7 @@
             left: 20px;
             right: 20px;
             bottom: 90px;
+            bottom: calc(90px + 100lvh - 100dvh);
             z-index: 1000;
             max-width: 560px;
             margin: 0 auto;
@@ -388,6 +393,7 @@
             .timeline.is-enhanced .tl-nav {
                 right: 12px;
                 bottom: 16px;
+                bottom: calc(16px + 100lvh - 100dvh);
             }
             .tl-card h3 {
                 font-size: 18px;
@@ -577,6 +583,12 @@
 
         section.classList.add('is-enhanced');
 
+        // Measures the screen height with mobile browser bars showing (100svh).
+        var probe = document.createElement('div');
+        probe.setAttribute('aria-hidden', 'true');
+        probe.style.cssText = 'position:absolute;top:0;left:0;width:0;visibility:hidden;height:100vh;height:100svh';
+        stage.appendChild(probe);
+
         var bar = document.createElement('div');
         bar.className = 'tl-bar';
         inner.insertBefore(bar, inner.firstChild);
@@ -654,7 +666,8 @@
         }
 
         var dayPx = 0;
-        var viewH = 0;
+        var viewH = 0;           // screen height with browser bars showing; spacing and focus are based on it
+        var stageH = 0;          // the stage itself, which extends underneath the bars
         var focusY = 0;
         var above = {}, below = {};
         var target = 0;          // position along the timeline, in days
@@ -663,10 +676,11 @@
         var active = -1;
 
         function layout() {
-            viewH = stage.clientHeight;
+            viewH = probe.offsetHeight;
+            stageH = stage.clientHeight;
             dayPx = DAY_HEIGHT * viewH;
             buildScrollMap();
-            section.style.height = (totalScroll + viewH) + 'px';
+            section.style.height = (totalScroll + stageH) + 'px';
 
             focusY = FOCUS * viewH;
             above = side((FOCUS - PLATEAU_TOP) * viewH, (FOCUS - APEX_TOP) * viewH);
@@ -740,7 +754,7 @@
                 var pr = project((it.day - current) * dayPx);
                 var y = focusY + pr.y;
                 // Cards hang below their tick, so allow them to show from above the top edge.
-                if (y > viewH + 20 || y < -(it.event ? 400 : 20)) {
+                if (y > stageH + 20 || y < -(it.event ? 400 : 20)) {
                     it.el.style.visibility = 'hidden';
                     continue;
                 }
@@ -817,13 +831,14 @@
         window.addEventListener('scroll', onScroll, { passive: true });
         // Mobile browsers fire resize whenever their toolbars show or hide. Only
         // lay out again when the stage itself changed size, or the timeline jumps.
-        var laidOutW = window.innerWidth, laidOutH = stage.clientHeight;
+        var laidOut = '';
         window.addEventListener('resize', function () {
-            if (window.innerWidth === laidOutW && stage.clientHeight === laidOutH) return;
-            laidOutW = window.innerWidth;
-            laidOutH = stage.clientHeight;
+            var size = [window.innerWidth, stage.clientHeight, probe.offsetHeight].join();
+            if (size === laidOut) return;
+            laidOut = size;
             layout();
         });
+        laidOut = [window.innerWidth, stage.clientHeight, probe.offsetHeight].join();
         layout();
     }
     </script>
