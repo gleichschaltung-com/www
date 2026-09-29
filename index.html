@@ -236,9 +236,21 @@
             background: var(--accent);
         }
         .timeline.is-enhanced .tl-card {
+            position: relative;
             margin-left: 28px;
             transform: translateY(-22px);
             transform-origin: 0 22px;
+        }
+        /* Without blur, cards fade under a veil instead of turning see-through,
+           so a card on top still covers the ones beneath it. */
+        .tl-veil {
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: var(--bg);
+            opacity: 0;
+            pointer-events: none;
+            will-change: opacity;
         }
         .timeline.is-enhanced .tl-event.is-active {
             z-index: 200 !important;
@@ -605,6 +617,16 @@
         var FOCUS = 0.4;         // height (share of the viewport) where the ticks peak; cards hang below it
         var PLATEAU_TOP = 0.2;   // above this line and below the next one, items stop changing
         var PLATEAU_BOTTOM = 0.8;
+        // On phones there is too little height for a band of unchanging items:
+        // they keep shrinking right up to the edges of the screen.
+        var PLATEAU_TOP_NARROW = 0;
+        var PLATEAU_BOTTOM_NARROW = 1;
+        // ...and cards keep their full size across a band around the focus line,
+        // a little taller than the band that stays sharp on larger screens.
+        var APEX_TOP_NARROW = 0.28;
+        var APEX_BOTTOM_NARROW = 0.58;
+        var narrow = window.matchMedia('(max-width: 600px)');
+        var isNarrow = false;
         var APEX_TOP = 0.32;     // between these lines items stay fully sharp (size still peaks at FOCUS)
         var APEX_BOTTOM = 0.54;
         var BLUR_START = 0.4;    // share of the way from apex to plateau before blur sets in
@@ -650,8 +672,9 @@
         startBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14M12 20V9M7 13l5-5 5 5"/></svg>';
         inner.appendChild(startBtn);
 
-        // For testing on phones: ?blur=off draws the timeline without any blur.
-        var noBlur = /[?&]blur=off(&|$)/.test(location.search);
+        // Blurring every card each frame costs touch devices visible smoothness;
+        // there the cards only fade towards the edges.
+        var noBlur = window.matchMedia('(pointer: coarse)').matches;
         if (noBlur) section.classList.add('no-blur');
 
         function parse(s) {
@@ -678,8 +701,15 @@
             ticks.push({ el: mark, day: Date.UTC(y, m, 1) / DAY - day0 });
         }
 
-        var items = events.map(function (el, i) { return { el: el, day: eventDays[i], event: true }; })
-            .concat(ticks);
+        var items = events.map(function (el, i) {
+            var item = { el: el, day: eventDays[i], event: true };
+            if (noBlur) {
+                item.veil = document.createElement('div');
+                item.veil.className = 'tl-veil';
+                cards[i].appendChild(item.veil);
+            }
+            return item;
+        }).concat(ticks);
 
         // Relative scroll cost of each day: 1 near events, dropping to GAP_COST in empty stretches.
         function rate(day) {
@@ -732,8 +762,13 @@
             measure();
 
             focusY = FOCUS * viewH;
-            above = side((FOCUS - PLATEAU_TOP) * viewH, (FOCUS - APEX_TOP) * viewH);
-            below = side((PLATEAU_BOTTOM - FOCUS) * viewH, (APEX_BOTTOM - FOCUS) * viewH);
+            isNarrow = narrow.matches;
+            var top = isNarrow ? PLATEAU_TOP_NARROW : PLATEAU_TOP;
+            var bottom = isNarrow ? PLATEAU_BOTTOM_NARROW : PLATEAU_BOTTOM;
+            var apexTop = isNarrow ? APEX_TOP_NARROW : APEX_TOP;
+            var apexBottom = isNarrow ? APEX_BOTTOM_NARROW : APEX_BOTTOM;
+            above = side((FOCUS - top) * viewH, (FOCUS - apexTop) * viewH);
+            below = side((bottom - FOCUS) * viewH, (apexBottom - FOCUS) * viewH);
 
             onScroll();
             current = target;
@@ -813,8 +848,9 @@
                     set(it, 'visibility', 'hidden');
                     continue;
                 }
-                var t = smooth(pr.t);   // 0 at the focus line, 1 from the plateau outwards
                 var ta = smooth(pr.tApex);   // 0 within the apex band, 1 from the plateau outwards
+                // Size: on phones flat across the apex band, elsewhere peaking at the focus line.
+                var t = isNarrow ? ta : smooth(pr.t);
                 // Blur only in the outer part of the ramp, so cards are sharp as soon as they are big enough to read.
                 var tb = smooth(Math.max(0, (pr.tApex - BLUR_START) / (1 - BLUR_START)));
                 var scale = calm ? 1 - 0.2 * t : 1 - (1 - MIN_SCALE) * t;
@@ -824,7 +860,12 @@
                 set(it, 'visibility', '');
                 set(it, 'transform', 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')');
                 set(it, 'filter', blur ? 'blur(' + blur + 'px)' : 'none');
-                set(it, 'opacity', (1 - 0.4 * ta).toFixed(2));
+                if (it.veil) {
+                    var veil = (0.4 * ta).toFixed(2);
+                    if (it.last.veil !== veil) it.veil.style.opacity = it.last.veil = veil;
+                } else {
+                    set(it, 'opacity', (1 - 0.4 * ta).toFixed(2));
+                }
                 set(it, 'zIndex', String(Math.round(100 - t * 90)));
             }
             var date = new Date((day0 + current) * DAY);
