@@ -248,19 +248,6 @@
             opacity: 0.35;
             cursor: default;
         }
-        .timeline.is-enhanced .tl-nav {
-            align-items: flex-end;
-        }
-        .tl-nav .tl-top {
-            width: auto;
-            padding: 0 18px;
-            border-radius: 22px;
-            font-size: 15px;
-            white-space: nowrap;
-        }
-        .tl-nav [hidden] {
-            display: none;
-        }
         .timeline.is-enhanced .tl-month {
             left: 0;
             width: var(--bar-x);
@@ -602,12 +589,10 @@
         var nav = document.createElement('div');
         nav.className = 'tl-nav';
         nav.innerHTML = '<button type="button" aria-label="Previous event">↑</button>' +
-                        '<button type="button" aria-label="Next event">↓</button>' +
-                        '<button type="button" class="tl-top" hidden>↑ Back to top</button>';
+                        '<button type="button" aria-label="Next event">↓</button>';
         inner.appendChild(nav);
         var prevBtn = nav.children[0];
         var nextBtn = nav.children[1];
-        var topBtn = nav.children[2];
 
         function parse(s) {
             var p = s.split('-');
@@ -777,15 +762,6 @@
             var from = heading >= 0 ? eventDays[heading] : target;
             prevBtn.disabled = from <= eventDays[0] + 0.01;
             nextBtn.disabled = from >= lastDay - 0.01;
-            // Once the last event is actually reached, the next button turns into "back to top".
-            var atEnd = target >= lastDay - 0.01;
-            if (atEnd !== nextBtn.hidden) {
-                var hadFocus = document.activeElement === (atEnd ? nextBtn : topBtn);
-                nextBtn.hidden = atEnd;
-                topBtn.hidden = !atEnd;
-                // preventScroll: moving focus must not cancel a smooth scroll in progress.
-                if (hadFocus) (atEnd ? topBtn : nextBtn).focus({ preventScroll: true });
-            }
         }
 
         function step() {
@@ -838,10 +814,6 @@
 
         prevBtn.addEventListener('click', function () { jump(-1); });
         nextBtn.addEventListener('click', function () { jump(1); });
-        topBtn.addEventListener('click', function () {
-            heading = -1;
-            window.scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
-        });
         window.addEventListener('scroll', onScroll, { passive: true });
         // Mobile browsers fire resize whenever their toolbars show or hide. Only
         // lay out again when the stage itself changed size, or the timeline jumps.
