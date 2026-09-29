@@ -133,7 +133,8 @@
             position: sticky;
             top: 0;
             height: 100vh;
-            height: 100dvh;
+            /* The small viewport height stays put while mobile browser bars slide in and out */
+            height: 100svh;
             max-width: none;
             padding: 0;
             overflow: hidden;
@@ -842,7 +843,15 @@
             window.scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
         });
         window.addEventListener('scroll', onScroll, { passive: true });
-        window.addEventListener('resize', layout);
+        // Mobile browsers fire resize whenever their toolbars show or hide. Only
+        // lay out again when the stage itself changed size, or the timeline jumps.
+        var laidOutW = window.innerWidth, laidOutH = stage.clientHeight;
+        window.addEventListener('resize', function () {
+            if (window.innerWidth === laidOutW && stage.clientHeight === laidOutH) return;
+            laidOutW = window.innerWidth;
+            laidOutH = stage.clientHeight;
+            layout();
+        });
         layout();
     }
     </script>
