@@ -185,6 +185,29 @@
             margin: 0;
             will-change: transform, opacity, filter;
         }
+        .timeline.is-enhanced.no-blur .tl-event,
+        .timeline.is-enhanced.no-blur .tl-month {
+            will-change: transform, opacity;
+        }
+        /* Back to the start of the timeline, level with the month label on the left */
+        .tl-start {
+            position: absolute;
+            top: 12px;
+            right: 20px;
+            z-index: 1000;
+            display: grid;
+            place-items: center;
+            padding: 0;
+        }
+        .tl-start svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
         .timeline.is-enhanced .tl-event {
             left: var(--bar-x);
             width: min(480px, calc(100% - var(--bar-x) - 20px));
@@ -243,7 +266,8 @@
             flex-direction: column;
             gap: 8px;
         }
-        .tl-nav button {
+        .tl-nav button,
+        .tl-start {
             width: 44px;
             height: 44px;
             border: 1px solid var(--rule);
@@ -255,10 +279,12 @@
             cursor: pointer;
             box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }
-        .tl-nav button:hover:not(:disabled) {
+        .tl-nav button:hover:not(:disabled),
+        .tl-start:hover:not(:disabled) {
             border-color: var(--ink);
         }
-        .tl-nav button:disabled {
+        .tl-nav button:disabled,
+        .tl-start:disabled {
             opacity: 0.35;
             cursor: default;
         }
@@ -396,6 +422,9 @@
             }
             .timeline.is-enhanced .tl-event::after {
                 width: 15px;
+            }
+            .tl-start {
+                right: 12px;
             }
             .timeline.is-enhanced .tl-nav {
                 right: 12px;
@@ -613,6 +642,18 @@
         var prevBtn = nav.children[0];
         var nextBtn = nav.children[1];
 
+        var startBtn = document.createElement('button');
+        startBtn.type = 'button';
+        startBtn.className = 'tl-start';
+        startBtn.setAttribute('aria-label', 'Back to the start of the timeline');
+        startBtn.title = 'Back to the start of the timeline';
+        startBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14M12 20V9M7 13l5-5 5 5"/></svg>';
+        inner.appendChild(startBtn);
+
+        // For testing on phones: ?blur=off draws the timeline without any blur.
+        var noBlur = /[?&]blur=off(&|$)/.test(location.search);
+        if (noBlur) section.classList.add('no-blur');
+
         function parse(s) {
             var p = s.split('-');
             return Date.UTC(+p[0], +p[1] - 1, +p[2]) / DAY;
@@ -688,6 +729,7 @@
             dayPx = DAY_HEIGHT * viewH;
             buildScrollMap();
             section.style.height = (totalScroll + stageH) + 'px';
+            measure();
 
             focusY = FOCUS * viewH;
             above = side((FOCUS - PLATEAU_TOP) * viewH, (FOCUS - APEX_TOP) * viewH);
@@ -778,10 +820,10 @@
                 var scale = calm ? 1 - 0.2 * t : 1 - (1 - MIN_SCALE) * t;
                 // Blur in quarter pixels: re-blurring is the costliest part of a frame on
                 // phones, and cards resting at the edges then aren't re-blurred at all.
-                var blur = calm ? 0 : Math.round(MAX_BLUR * tb * 4) / 4;
+                var blur = calm || noBlur ? 0 : Math.round(MAX_BLUR * tb * 4) / 4;
                 set(it, 'visibility', '');
                 set(it, 'transform', 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')');
-                set(it, 'filter', 'blur(' + blur + 'px)');
+                set(it, 'filter', blur ? 'blur(' + blur + 'px)' : 'none');
                 set(it, 'opacity', (1 - 0.4 * ta).toFixed(2));
                 set(it, 'zIndex', String(Math.round(100 - t * 90)));
             }
@@ -791,6 +833,7 @@
             var from = heading >= 0 ? eventDays[heading] : target;
             prevBtn.disabled = from <= eventDays[0] + 0.01;
             nextBtn.disabled = from >= lastDay - 0.01;
+            startBtn.disabled = prevBtn.disabled;
         }
 
         // Ease towards the scroll position for a softer, "swooshing" motion with the
@@ -814,8 +857,15 @@
             else raf = requestAnimationFrame(step);
         }
 
+        // Where the timeline starts on the page. Kept, so scrolling doesn't have to
+        // ask the browser for a fresh layout on every scroll event.
+        var sectionTop = 0;
+        function measure() {
+            sectionTop = section.getBoundingClientRect().top + window.pageYOffset;
+        }
+
         function onScroll() {
-            var top = section.getBoundingClientRect().top;
+            var top = sectionTop - window.pageYOffset;
             target = scrollToDay(Math.max(0, Math.min(totalScroll, -top)));
             if (heading >= 0 && Math.abs(-top - eventScroll[heading]) < 2) heading = -1;   // arrived (no scrollend in older browsers)
             if (!raf) raf = requestAnimationFrame(step);
@@ -836,8 +886,11 @@
                 }
             }
             if (to < 0 || to >= eventDays.length) return;
+            goTo(to);
+        }
+
+        function goTo(to) {
             heading = to;
-            var sectionTop = section.getBoundingClientRect().top + window.pageYOffset;
             window.scrollTo({
                 top: sectionTop + eventScroll[to],
                 behavior: reduceMotion.matches ? 'auto' : 'smooth'
@@ -847,7 +900,7 @@
         // Forget the destination once the scroll arrives or the reader takes over
         // (but not when the keypress is the reader activating a jump button).
         function stopHeading(e) {
-            if (!e || !nav.contains(e.target)) heading = -1;
+            if (!e || !(nav.contains(e.target) || e.target === startBtn)) heading = -1;
         }
         window.addEventListener('scrollend', stopHeading);
         ['wheel', 'touchstart', 'keydown'].forEach(function (type) {
@@ -856,6 +909,9 @@
 
         prevBtn.addEventListener('click', function () { jump(-1); });
         nextBtn.addEventListener('click', function () { jump(1); });
+        startBtn.addEventListener('click', function () { goTo(0); });
+        // Anything above the timeline that settles late (images, fonts) moves it down.
+        window.addEventListener('load', function () { measure(); onScroll(); });
         window.addEventListener('scroll', onScroll, { passive: true });
         // Mobile browsers fire resize whenever their toolbars show or hide. Only
         // lay out again when the stage itself changed size, or the timeline jumps.
