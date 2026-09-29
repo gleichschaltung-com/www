@@ -197,57 +197,52 @@
             background: var(--accent);
         }
         .timeline.is-enhanced .tl-card {
-            display: grid;
-            grid-template-rows: auto auto 1fr;
             margin-left: 28px;
             transform: translateY(-22px);
-            transition: grid-template-rows 0.35s ease, padding 0.35s ease, transform 0.35s ease;
-        }
-        .timeline.is-enhanced .tl-card p {
-            min-height: 0;
-            overflow: hidden;
-        }
-        .timeline.is-enhanced .tl-card h3 {
-            transition: margin 0.35s ease;
-        }
-        /* Focus layout: only the event nearest the centre shows its full card */
-        .timeline.is-focus .tl-event:not(.is-active) .tl-card {
-            grid-template-rows: auto auto 0fr;
-            padding-top: 10px;
-            padding-bottom: 10px;
-            transform: translateY(-14px);
-        }
-        .timeline.is-focus .tl-event:not(.is-active) .tl-card h3 {
-            margin-bottom: 0;
+            transform-origin: 0 22px;
         }
         .timeline.is-enhanced .tl-event.is-active {
             z-index: 200 !important;
         }
-        .tl-mode {
+        /* Played only when the centred card takes the top of a stack of overlapping cards */
+        .timeline.is-enhanced .tl-card.is-lifting {
+            animation: tl-lift 0.45s ease-out;
+        }
+        @keyframes tl-lift {
+            0% { transform: translateY(-22px) scale(0.97); }
+            40% { transform: translateY(-26px) scale(1.03); box-shadow: 0 10px 28px rgba(0,0,0,0.18); }
+            100% { transform: translateY(-22px) scale(1); }
+        }
+        .tl-nav {
             display: none;
         }
-        .timeline.is-enhanced .tl-mode {
+        .timeline.is-enhanced .tl-nav {
             position: absolute;
-            top: 16px;
             right: 20px;
+            bottom: 24px;
             z-index: 1000;
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .tl-nav button {
+            width: 44px;
+            height: 44px;
             border: 1px solid var(--rule);
-            border-radius: 999px;
+            border-radius: 50%;
             background: var(--paper);
-            overflow: hidden;
-        }
-        .tl-mode button {
-            border: 0;
-            background: none;
-            padding: 6px 14px;
-            font: 13px Georgia, serif;
-            color: var(--ink-soft);
+            color: var(--ink);
+            font: 18px Georgia, serif;
+            line-height: 1;
             cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }
-        .tl-mode button[aria-pressed="true"] {
-            background: var(--ink);
-            color: var(--paper);
+        .tl-nav button:hover:not(:disabled) {
+            border-color: var(--ink);
+        }
+        .tl-nav button:disabled {
+            opacity: 0.35;
+            cursor: default;
         }
         .timeline.is-enhanced .tl-month {
             left: 0;
@@ -306,6 +301,10 @@
             }
             .timeline.is-enhanced .tl-event::after {
                 width: 15px;
+            }
+            .timeline.is-enhanced .tl-nav {
+                right: 12px;
+                bottom: 16px;
             }
             .tl-card h3 {
                 font-size: 18px;
@@ -585,16 +584,24 @@
         var stage = section.querySelector('.timeline-stage');
         var inner = section.querySelector('.timeline-inner');
         var events = Array.prototype.slice.call(section.querySelectorAll('.tl-event'));
+        var cards = events.map(function (el) { return el.querySelector('.tl-card'); });
         var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
         var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                       'July', 'August', 'September', 'October', 'November', 'December'];
         var DAY = 864e5;
-        var DAY_HEIGHT = 0.06;   // scroll distance per day, as a fraction of the viewport height
-        var HORIZON = 1.2;       // vanishing distance as a multiple of half the viewport height
-        var PLATEAU = 0.6;       // beyond this share of half the viewport (the outer 20% at each edge) items stop changing
+        var DAY_HEIGHT = 0.06;   // on-screen distance per day, as a fraction of the viewport height
+        var FOCUS = 0.4;         // height (share of the viewport) where the ticks peak; cards hang below it
+        var PLATEAU_TOP = 0.2;   // above this line and below the next one, items stop changing
+        var PLATEAU_BOTTOM = 0.8;
         var MIN_SCALE = 0.45;    // item size once it reaches the plateau
         var MAX_BLUR = 6;        // blur in px once it reaches the plateau
+        // Scrolling speeds up in empty stretches: within CALM_DAYS of an event one day
+        // costs one day of scrolling; over the next RAMP_DAYS that drops to GAP_COST.
+        var CALM_DAYS = 5;
+        var RAMP_DAYS = 10;
+        var GAP_COST = 0.2;
+        var STEP = 0.25;         // resolution of the scroll lookup table, in days
 
         section.classList.add('is-enhanced');
 
@@ -607,35 +614,13 @@
         now.setAttribute('aria-hidden', 'true');
         inner.appendChild(now);
 
-        // Toggle between the two card layouts (for comparing them).
-        var modes = { focus: 'Focus', stack: 'Stack' };
-        var toggle = document.createElement('div');
-        toggle.className = 'tl-mode';
-        toggle.setAttribute('role', 'group');
-        toggle.setAttribute('aria-label', 'Card layout');
-        Object.keys(modes).forEach(function (key) {
-            var b = document.createElement('button');
-            b.type = 'button';
-            b.dataset.mode = key;
-            b.textContent = modes[key];
-            b.addEventListener('click', function () { setMode(key); });
-            toggle.appendChild(b);
-        });
-        inner.appendChild(toggle);
-
-        function setMode(mode) {
-            section.classList.toggle('is-focus', mode === 'focus');
-            Array.prototype.forEach.call(toggle.children, function (b) {
-                b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
-            });
-            try { localStorage.setItem('tl-mode', mode); } catch (err) {}
-        }
-
-        var initial = (location.search.match(/[?&]layout=(focus|stack)/) || [])[1];
-        if (!initial) {
-            try { initial = localStorage.getItem('tl-mode'); } catch (err) {}
-        }
-        setMode(modes[initial] ? initial : 'focus');
+        var nav = document.createElement('div');
+        nav.className = 'tl-nav';
+        nav.innerHTML = '<button type="button" aria-label="Previous event">↑</button>' +
+                        '<button type="button" aria-label="Next event">↓</button>';
+        inner.appendChild(nav);
+        var prevBtn = nav.children[0];
+        var nextBtn = nav.children[1];
 
         function parse(s) {
             var p = s.split('-');
@@ -660,76 +645,134 @@
 
         var items = events.map(function (el, i) { return { el: el, day: eventDays[i], event: true }; })
             .concat(ticks);
+
+        // Scroll cost of each day, accumulated into a lookup table (in days of scrolling).
+        var cost = [0];
+        for (var d = STEP; d < lastDay + STEP / 2; d += STEP) {
+            var mid = d - STEP / 2, gap = Infinity;
+            for (var k = 0; k < eventDays.length; k++) gap = Math.min(gap, Math.abs(eventDays[k] - mid));
+            var rate = 1 - (1 - GAP_COST) * Math.min(1, Math.max(0, gap - CALM_DAYS) / RAMP_DAYS);
+            cost.push(cost[cost.length - 1] + rate * STEP);
+        }
+        var totalCost = cost[cost.length - 1];
+
+        function dayToCost(day) {
+            var i = Math.min(Math.floor(day / STEP), cost.length - 2);
+            return cost[i] + (cost[i + 1] - cost[i]) * (day / STEP - i);
+        }
+
+        function costToDay(c) {
+            var lo = 0, hi = cost.length - 1;
+            while (hi - lo > 1) {
+                var m = (lo + hi) >> 1;
+                if (cost[m] <= c) lo = m; else hi = m;
+            }
+            var span = cost[hi] - cost[lo];
+            return (lo + (span ? (c - cost[lo]) / span : 0)) * STEP;
+        }
+
         var dayPx = 0;
         var viewH = 0;
-        var horizon = 0;
-        var plateauY = 0, plateauG = 0, plateauSlope = 0;
-        var target = 0;          // scroll position along the track, in days
+        var focusY = 0;
+        var above = {}, below = {};
+        var target = 0;          // position along the timeline, in days
         var current = 0;
         var raf = 0;
-        var active = null;
+        var active = -1;
 
         function layout() {
             viewH = stage.clientHeight;
-            // Track position is strictly proportional to time.
             dayPx = DAY_HEIGHT * viewH;
-            section.style.height = (lastDay * dayPx + viewH) + 'px';
+            section.style.height = (totalCost * dayPx + viewH) + 'px';
 
-            horizon = HORIZON * viewH / 2;
-            plateauY = PLATEAU * viewH / 2;
-            plateauG = plateauY / (1 - plateauY / horizon);
-            plateauSlope = Math.pow(1 - plateauY / horizon, 2);
+            focusY = FOCUS * viewH;
+            above = side((FOCUS - PLATEAU_TOP) * viewH);
+            below = side((PLATEAU_BOTTOM - FOCUS) * viewH);
 
             onScroll();
             current = target;
             render();
         }
 
-        // Perspective: track distance g (px) maps to a screen offset that is
-        // squeezed towards the edges. Past the plateau it continues in a
-        // straight line, so items there move at a constant rate.
+        // Perspective on each side of the focus line: the horizon sits at twice
+        // the plateau distance, so items reach the plateau moving at a quarter speed.
+        function side(plateauY) {
+            var horizon = 2 * plateauY;
+            return { y: plateauY, horizon: horizon, g: plateauY / (1 - plateauY / horizon),
+                     slope: Math.pow(1 - plateauY / horizon, 2) };
+        }
+
+        // Track distance g (px) from the focus line maps to a screen offset that is
+        // squeezed towards the edges. Past the plateau it continues in a straight
+        // line, so items there move at a constant rate. Returns the offset and
+        // how far along towards the plateau the item is (0..1).
         function project(g) {
-            var a = Math.abs(g);
-            var y = a <= plateauG ? a / (1 + a / horizon) : plateauY + (a - plateauG) * plateauSlope;
-            return g < 0 ? -y : y;
+            var p = g < 0 ? above : below, a = Math.abs(g);
+            var y = a <= p.g ? a / (1 + a / p.horizon) : p.y + (a - p.g) * p.slope;
+            return { y: g < 0 ? -y : y, t: Math.min(y / p.y, 1) };
+        }
+
+        // Flat at both ends, so items ease into the centre and into the plateau
+        // instead of peaking sharply.
+        function smooth(t) {
+            return t * t * (3 - 2 * t);
+        }
+
+        // Does event i share screen space with one of its neighbours?
+        function overlaps(i) {
+            return (i > 0 && (eventDays[i] - eventDays[i - 1]) * dayPx < cards[i - 1].offsetHeight) ||
+                   (i < events.length - 1 && (eventDays[i + 1] - eventDays[i]) * dayPx < cards[i].offsetHeight);
+        }
+
+        function setActive(i) {
+            if (i === active) return;
+            if (active >= 0) events[active].classList.remove('is-active');
+            if (i >= 0) {
+                events[i].classList.add('is-active');
+                if (active >= 0 && !reduceMotion.matches && overlaps(i)) {
+                    var card = cards[i];
+                    card.classList.remove('is-lifting');
+                    void card.offsetWidth;   // restart the animation
+                    card.classList.add('is-lifting');
+                }
+            }
+            active = i;
         }
 
         function render() {
-            var half = viewH / 2;
             var calm = reduceMotion.matches;
 
-            // The event nearest the centre gets the full card in the focus layout.
-            var nearest = null, best = Infinity;
+            // The event nearest the centre sits on top of the stack.
+            var nearest = -1, best = Infinity;
             for (var k = 0; k < events.length; k++) {
                 var dist = Math.abs(eventDays[k] - current);
-                if (dist < best) { best = dist; nearest = events[k]; }
+                if (dist < best) { best = dist; nearest = k; }
             }
-            if (best * dayPx > half) nearest = null;
-            if (nearest !== active) {
-                if (active) active.classList.remove('is-active');
-                if (nearest) nearest.classList.add('is-active');
-                active = nearest;
-            }
+            setActive(best * dayPx > viewH / 2 ? -1 : nearest);
 
             for (var i = 0; i < items.length; i++) {
                 var it = items[i];
-                var offset = project((it.day - current) * dayPx);
+                var pr = project((it.day - current) * dayPx);
+                var y = focusY + pr.y;
                 // Cards hang below their tick, so allow them to show from above the top edge.
-                if (offset > half + 20 || offset < -half - (it.event ? 400 : 20)) {
+                if (y > viewH + 20 || y < -(it.event ? 400 : 20)) {
                     it.el.style.visibility = 'hidden';
                     continue;
                 }
-                var t = Math.min(Math.abs(offset) / plateauY, 1);   // 0 at the centre, 1 from the plateau outwards
-                var scale = calm ? 1 - 0.2 * t : 1 - (1 - MIN_SCALE) * Math.pow(t, 0.8);
-                var blur = calm ? 0 : MAX_BLUR * t * t;
+                var t = smooth(pr.t);   // 0 at the focus line, 1 from the plateau outwards
+                var scale = calm ? 1 - 0.2 * t : 1 - (1 - MIN_SCALE) * t;
+                var blur = calm ? 0 : MAX_BLUR * t;
                 it.el.style.visibility = '';
-                it.el.style.transform = 'translate3d(0,' + (half + offset).toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
-                it.el.style.filter = blur > 0.2 ? 'blur(' + blur.toFixed(1) + 'px)' : '';
-                it.el.style.opacity = (1 - 0.4 * t * t).toFixed(3);
+                it.el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
+                it.el.style.filter = 'blur(' + blur.toFixed(2) + 'px)';
+                it.el.style.opacity = (1 - 0.4 * t).toFixed(3);
                 it.el.style.zIndex = Math.round(100 - t * 90);
             }
             var date = new Date((day0 + current) * DAY);
             now.textContent = MONTHS[date.getUTCMonth()] + ' ' + date.getUTCFullYear();
+
+            prevBtn.disabled = target <= eventDays[0] + 0.01;
+            nextBtn.disabled = target >= lastDay - 0.01;
         }
 
         function step() {
@@ -742,10 +785,26 @@
 
         function onScroll() {
             var top = section.getBoundingClientRect().top;
-            target = Math.max(0, Math.min(lastDay, -top / dayPx));
+            target = costToDay(Math.max(0, Math.min(totalCost, -top / dayPx)));
             if (!raf) raf = requestAnimationFrame(step);
         }
 
+        function jump(dir) {
+            var to = null;
+            for (var i = 0; i < eventDays.length; i++) {
+                var day = eventDays[dir > 0 ? i : eventDays.length - 1 - i];
+                if (dir > 0 ? day > target + 0.01 : day < target - 0.01) { to = day; break; }
+            }
+            if (to === null) return;
+            var sectionTop = section.getBoundingClientRect().top + window.pageYOffset;
+            window.scrollTo({
+                top: sectionTop + dayToCost(to) * dayPx,
+                behavior: reduceMotion.matches ? 'auto' : 'smooth'
+            });
+        }
+
+        prevBtn.addEventListener('click', function () { jump(-1); });
+        nextBtn.addEventListener('click', function () { jump(1); });
         window.addEventListener('scroll', onScroll, { passive: true });
         window.addEventListener('resize', layout);
         layout();
